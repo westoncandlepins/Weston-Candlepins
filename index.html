@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#17365d">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="apple-touch-icon.png">
+<meta charset="utf-8">
+<title>WGC Men's Candlepin App</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&family=Cormorant+Garamond:wght@500&display=swap">
+<style>
+/* Club-navy header band, stacked working panels, keypad pinned to the bottom while a string is live. */
+:root{--loss:#b42318;--tie:#1f5fbf;--goldText:#93660f;
+  --bg:#eef2f6;--surface:#fff;--ink:#15243a;--muted:#5a687b;--line:#d3dbe5;
+  --brand:#17365d;--brand-ink:#fff;--accent:#1f4c86;--gold:#c8962c;--act:#fff1c2;
+  --key:#17365d;--key-ink:#fff;--soft:#f5f8fb;--ok:#2d7a4c;--warn:#a5531b;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;--body:"Barlow","Segoe UI",Arial,sans-serif;
+  color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--loss:#f2897b;--tie:#8db4e6;--goldText:#e8bf63;
+  --bg:#0d1520;--surface:#152131;--ink:#e6ecf4;--muted:#99a7b9;--line:#2a3a4f;
+  --brand:#10243d;--brand-ink:#f2f5f9;--accent:#8db4e6;--gold:#e2b75c;--act:#3d3315;
+  --key:#2a5590;--key-ink:#fff;--soft:#1b2a3d;--ok:#6cc391;--warn:#e59a62;color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--body)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{background:var(--brand);color:var(--brand-ink);border-bottom:4px solid var(--gold)}
+header .wrap{padding-block:12px;display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline;justify-content:space-between}
+.eyebrow{font:600 12px/1 var(--body);letter-spacing:.12em;text-transform:uppercase;opacity:.8}
+h1{font:700 26px/1.05 var(--display);margin:4px 0 0}
+.matchline{font:600 17px var(--display);letter-spacing:.03em}
+main{display:flex;flex-direction:column;gap:12px;padding-block:12px 28px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px}
+details>summary{cursor:pointer;font:700 19px var(--display);letter-spacing:.03em;text-transform:uppercase;color:var(--accent);list-style:none}
+details>summary::-webkit-details-marker{display:none}
+details>summary::after{content:"  +";font-size:15px;color:var(--muted)}
+details[open]>summary::after{content:"  −"}
+label{display:block;font:600 11px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+input,select,button,textarea{font:inherit;color:inherit}
+input,select{width:100%;padding:8px 9px;border:1px solid var(--line);border-radius:6px;background:var(--surface);min-width:0;font-size:16px}
+input:disabled,select:disabled{background:var(--soft);color:var(--muted)}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button{border:0;border-radius:7px;padding:10px 14px;font-weight:700;cursor:pointer;background:var(--accent);color:var(--surface);touch-action:manipulation}
+button.primary{background:var(--key);color:var(--key-ink)}
+button.gold{background:var(--gold);color:#1b1404}
+button.ghost.danger{color:var(--warn);border-color:var(--warn)}
+button.ghost.danger.armed{background:var(--warn);color:#fff}
+button.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:10px}
+.matchcard{margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--soft);border:1px solid var(--line);font-weight:600}
+.matchcard b{font:700 20px var(--display);letter-spacing:.02em}
+.note{font-size:13px;color:var(--muted)}
+.warn{color:var(--warn);font-weight:600}
+.tabs{display:flex;gap:6px}
+.tab{flex:1 1 0;min-width:0;text-align:left;background:var(--surface);color:var(--ink);border:1px solid var(--line);padding:8px 10px}
+.tab b{display:block;font:700 17px var(--display)}
+.tab span{font-size:12px;color:var(--muted);font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tab.on{border-color:var(--gold);box-shadow:inset 0 -3px 0 var(--gold)}
+.tab.saved span{color:var(--ok)}
+.setup{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:14px;margin-top:10px}
+.lineup{display:grid;gap:6px}
+.lrow{display:grid;grid-template-columns:24px minmax(0,1fr) 88px;gap:6px;align-items:center}
+.lrow .pos{font:700 18px var(--display);color:var(--muted);text-align:center}
+.subrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;margin-top:6px}.subrow input{grid-column:1/-1}
+.lrow .avg{font:700 18px var(--display);text-align:center;font-variant-numeric:tabular-nums;color:var(--muted)}
+.side{display:flex;flex-direction:column;gap:10px}
+.vs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--soft)}
+.vs .who{font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0;text-transform:none;letter-spacing:0}
+.vs .v{font:700 26px/1.1 var(--display);font-variant-numeric:tabular-nums}
+.vs .hc .v{color:var(--accent)}
+.vs input{font:700 22px/1.1 var(--display);padding:4px 8px;margin-top:2px;border-color:var(--gold)}
+.board{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:10px}
+.stat{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.stat .v{font:700 30px/1.05 var(--display);font-variant-numeric:tabular-nums}
+.stat.total{background:var(--act);border-color:var(--gold)}
+.pm.pos{color:var(--ok)}.pm.neg{color:var(--warn)}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.msg{font-weight:700;color:var(--accent)}
+.cards{display:flex;flex-direction:column;gap:8px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;scroll-margin:12px 0 220px}
+.card.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}
+.card.absent{opacity:.6}
+.ch{display:flex;align-items:baseline;gap:8px}
+.ch .cpos{font:700 20px var(--display);color:var(--muted)}
+.ch b{font:700 20px var(--display);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:6px 0 8px}
+.cstats div{background:var(--soft);border-radius:6px;padding:3px 6px;min-width:0}
+.cstats label{font-size:10px;margin:0}
+.cstats span{font:700 20px/1.1 var(--display);font-variant-numeric:tabular-nums}
+.frames{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:2px}
+.f{border:1px solid var(--line);border-radius:4px;text-align:center;font-variant-numeric:tabular-nums;min-width:0}
+.f.blk{background:var(--act)}
+.f .fn{font-size:9px;color:var(--muted);line-height:1.3}
+.f .fb{display:grid;grid-template-columns:repeat(3,1fr);font-size:12px;line-height:1.5;border-top:1px solid var(--line)}
+.f .fb i{font-style:normal;min-width:0}
+.f .fb i.cur{background:var(--gold);color:#1b1404;border-radius:2px}
+.f .fb i.tap{cursor:pointer}
+.f .ft{font-weight:700;font-size:12px;min-height:17px;border-top:1px solid var(--line)}
+.padwrap{position:sticky;bottom:0;z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:12px 12px 0 0;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 18px rgba(10,20,35,.14)}
+.padteam{display:flex;flex-wrap:wrap;gap:2px 12px;font-weight:600;font-size:14px;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.padteam b{font:700 18px var(--display)}
+.now{display:flex;flex-wrap:wrap;gap:2px 12px;align-items:baseline;margin-bottom:8px}
+.now b{font:700 21px var(--display)}
+.now span{color:var(--muted);font-weight:600;font-size:13px}
+.keys{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.keys button{min-height:58px;font:700 26px var(--display);background:var(--key);color:var(--key-ink)}
+.keys button.mark{background:var(--gold);color:#1b1404}
+.keys button.undo{background:var(--muted);color:var(--surface);font:700 16px var(--body)}
+@media(min-width:760px){.keys{grid-template-columns:repeat(12,minmax(0,1fr))}.keys button{min-height:50px;font-size:22px}}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+.res th,.res td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:right;white-space:nowrap}
+.res th:first-child,.res td:first-child{text-align:left}
+.res th{font:600 11px var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+textarea{width:100%;min-height:140px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;border:1px solid var(--line);border-radius:6px;padding:8px;background:var(--soft)}
+header .nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding-block:0 10px;align-items:stretch}
+@media(min-width:600px){header .nav{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.nav button{min-width:0;background:#fff;color:#17365d;opacity:1;border-radius:999px;padding:8px 6px;box-shadow:0 1px 2px rgba(0,0,0,.18);font:700 14px/1.15 var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav button.on{background:var(--gold);color:#1b1404;opacity:1}
+.nav button:not(.on):active{background:#e8edf3}
+
+header .nav{gap:8px!important}
+.night{font:700 20px var(--display);letter-spacing:.04em;text-transform:uppercase;color:var(--accent);margin:4px 0 6px}
+.st{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.st th{font:600 11px var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:right;padding:8px 8px 6px;border-bottom:1px solid var(--line)}
+.st td{padding:9px 8px;text-align:right;border-bottom:1px solid var(--line)}
+.st th:nth-child(2),.st td:nth-child(2){text-align:left}
+.st th:first-child,.st td:first-child{text-align:center;width:34px}
+.st tr.team{cursor:pointer}
+.st tr.mine td{background:var(--act)}
+.st td.tn{font:700 17px var(--display);letter-spacing:.02em}
+.st td.rk{font:700 18px var(--display);color:var(--muted)}
+.st tr.wk td{padding:4px 8px 10px;text-align:left;background:var(--soft)}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.tdet{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px;max-width:420px}
+.tdet div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:5px 8px;min-width:0}
+.tdet label{font-size:10px;margin:0}
+.tdet b{display:block;font:700 20px/1.1 var(--display);font-variant-numeric:tabular-nums}
+.tdet span{display:block;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:520px){.tdet{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.chip{font:600 12px var(--body);padding:2px 7px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-variant-numeric:tabular-nums}
+.chip.w{border-color:var(--ok);color:var(--ok)}.chip.l{border-color:var(--loss);color:var(--loss)}.chip.t{border-color:var(--tie);color:var(--tie)}
+.upd{font-size:12px;color:var(--muted);margin:2px 0 10px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.upd button{padding:6px 10px;font-size:13px}
+.lbd{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden}
+.lbd h3{margin:0}
+.lbd .tg{display:grid;grid-template-columns:36px 1fr 36px;align-items:center;width:100%;padding:10px 6px;border-radius:0;background:var(--brand);color:var(--brand-ink);font:700 17px var(--display);letter-spacing:.05em;text-transform:uppercase;text-align:center}
+.lbd .tg .t{grid-column:2}
+.lbd .tg .pm{grid-column:3;justify-self:center;width:28px;height:28px;border-radius:50%;background:var(--gold);color:#1b1404;font:700 20px/28px var(--body)}
+.lbd .sub{font:600 12px var(--body);text-transform:none;letter-spacing:0;opacity:.8;display:block;margin-top:1px}
+.lbd .win{max-height:calc(10 * 37px + 30px);overflow:auto;-webkit-overflow-scrolling:touch}
+.lbd table{width:100%;border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums;font-size:14px}
+.lbd th{position:sticky;top:0;z-index:1;background:var(--surface);font:600 10px var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:8px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+.lbd td{height:37px;padding:0 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.lbd th.nm,.lbd td.nm{text-align:left;white-space:normal}
+.lbd td.nm{font-weight:600}
+.lbd tbody tr:first-child td{font-weight:700}
+.lbd .more{font-size:12px;color:var(--muted);text-align:center;padding:6px 8px 8px}
+#leadersTop{margin:12px 0}
+.wkpick{display:flex;gap:6px;overflow-x:auto;padding:12px 0 4px;scrollbar-width:none}
+.wkpick button{flex:0 0 auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font:700 14px var(--body)}
+.wkpick button.on{background:var(--gold);color:#1b1404;border-color:var(--gold)}
+.rh{margin:10px 0 2px}
+.rh h2{margin:0;font:700 26px/1.1 var(--display);letter-spacing:.02em}
+.rh p{margin:2px 0 0;color:var(--muted);font-size:13px;font-weight:600}
+.notes{background:var(--act);border:1px solid var(--gold);border-radius:10px;padding:10px 14px;margin-top:12px}
+.notes h3{margin:0 0 4px;font:700 15px var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
+.notes ul{margin:0;padding-left:18px}.notes li{margin:3px 0}
+.sec{font:700 18px var(--display);letter-spacing:.05em;text-transform:uppercase;color:var(--accent);margin:16px 0 6px}
+.match{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:6px}
+.match .ln{display:grid;grid-template-columns:1fr auto;align-items:baseline;padding:2px 0}
+.match .tm{font:700 18px var(--display);letter-spacing:.02em;color:var(--muted)}
+.match .pt{font:700 22px var(--display);font-variant-numeric:tabular-nums;color:var(--muted)}
+.match .win .tm,.match .win .pt{color:var(--ink)}
+.match .win .pt{color:var(--accent)}
+.match .meta{font-size:12px;color:var(--muted);font-weight:600;margin-top:2px}
+.hl{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden}
+.hl h3{margin:0;padding:9px 12px;background:var(--brand);color:var(--brand-ink);font:700 17px var(--display);letter-spacing:.05em;text-transform:uppercase;text-align:center}
+.hl h3 span{display:block;font:600 12px var(--body);text-transform:none;letter-spacing:0;opacity:.8}
+.hl ol{list-style:none;margin:0;padding:0}
+.hl li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 12px;border-top:1px solid var(--line)}
+.hl li:first-child{border-top:0}
+.hl .rk{font:700 18px var(--display);color:var(--muted);text-align:center}
+.hl .who b{display:block;font-weight:700}
+.hl .who span{font-size:12px;color:var(--muted)}
+.hl .val{font:700 24px var(--display);font-variant-numeric:tabular-nums}
+.hl li:first-child .val{color:var(--accent)}
+.hl .more{display:block;width:100%;border-radius:0;border-top:1px solid var(--line);background:transparent;color:var(--accent);padding:9px}
+.empty{color:var(--muted);padding:10px 12px}
+.story{max-width:66ch;margin:0 auto;padding-bottom:8px}
+.story .kicker{font:700 12px var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:14px 0 6px}
+.story h2{margin:0;font:700 34px/1.05 var(--display);letter-spacing:.01em;text-wrap:balance}
+.story .dek{margin:8px 0 0;font-size:17px;line-height:1.4;color:var(--muted)}
+.story .meta{margin:10px 0 0;padding-top:10px;border-top:1px solid var(--line);font-size:13px;font-weight:600;color:var(--muted)}
+.story p{font-size:17px;line-height:1.6;margin:14px 0}
+.story .dl{font-weight:700;letter-spacing:.04em}
+.story h3{font:700 21px/1.1 var(--display);letter-spacing:.05em;text-transform:uppercase;color:var(--accent);margin:26px 0 0;padding-bottom:6px;border-bottom:2px solid var(--gold);display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.story h3 small{font:600 13px var(--body);letter-spacing:0;text-transform:none;color:var(--muted)}
+.story p b.mh{font-weight:800}
+.story .ahead{margin:12px 0;padding:0;list-style:none}
+.story .ahead li{padding:3px 0;font-size:16px}
+.story .ahead .nt{font-weight:700;margin-top:8px}
+.story .notes{margin-top:16px}
+.hd{flex-wrap:nowrap!important;align-items:center!important;gap:12px}
+.hdtext{min-width:0}
+.crest{height:82px;width:auto;flex:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+.foot{background:var(--brand);color:var(--brand-ink);border-top:4px solid var(--gold);margin-top:28px}
+.foot .wrap{padding-block:24px calc(24px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.foot img{height:46px;width:auto;max-width:100%}
+.foot p{margin:0;font-family:"Cormorant Garamond","Times New Roman",Georgia,serif;font-weight:500;font-size:clamp(9px,2.95vw,15px);letter-spacing:.07em;text-transform:uppercase;white-space:nowrap;max-width:100%}
+#lane{background:var(--gold);color:#1b1404;border-color:var(--gold);font-weight:700}
+#lane:disabled{opacity:.6}
+.lbd .tg{grid-template-columns:36px minmax(0,1fr) 36px!important;padding:10px 6px 9px!important}
+.lbd .tg .t{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.lbd .tg .t1{display:block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:700 17px var(--display);letter-spacing:.05em;text-transform:uppercase}
+.lbd .tg .t2{font:700 12px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+.lbd .tg .t4{font:600 10.5px var(--body);letter-spacing:.04em;color:var(--gold);opacity:.9;text-transform:none;margin-top:-1px}
+.lbd .tg .t3{font:600 12px var(--body);color:var(--brand-ink);opacity:.85;text-transform:none;letter-spacing:0}
+.lbd tbody tr:first-child td{font-weight:400}
+.lbd td.nm{font-weight:600}
+.lbd tbody tr.top td{background:var(--act);font-weight:700}
+.lbd.champ td,.lbd.champ td.nm{font-weight:400}
+.lbd.champ tr.q td{color:var(--goldText)}
+.lbd.champ tr.alt td{color:var(--ink)}
+.lbd tr.altfirst td{border-top:2px solid var(--gold)}
+@media(max-width:520px){.lbd .nh{display:none}.lbd th,.lbd td{padding-left:6px;padding-right:6px}.lbd table{font-size:13.5px}}
+.loading{padding:30px 0;text-align:center;color:var(--muted);font-weight:600}
+@media(max-width:760px){.setup{grid-template-columns:1fr}.board{grid-template-columns:repeat(3,minmax(0,1fr))}.stat .v{font-size:24px}.controls button{flex:1 1 auto;min-height:48px}
+  .padwrap{margin-left:calc(-1 * max(16px,env(safe-area-inset-left,0px)));margin-right:calc(-1 * max(16px,env(safe-area-inset-right,0px)))}}
+/* Box-by-box entry and paper-sheet scanning */
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:999px}
+.modes button{background:transparent;color:var(--ink);border-radius:999px;padding:9px 6px;font:700 15px var(--body)}
+.modes button.on{background:var(--gold);color:#1b1404}
+.scan .filebtn{display:inline-block;margin:0;padding:10px 14px;border-radius:7px;background:var(--key);color:var(--key-ink);font:700 15px var(--body);letter-spacing:0;text-transform:none;cursor:pointer}
+.scan img{display:block;max-width:100%;max-height:260px;margin-top:10px;border-radius:8px;border:1px solid var(--line)}
+.review{margin-top:10px;padding:8px 12px;border-radius:8px;background:var(--act);border:1px solid var(--gold);font-size:14px}
+.review ul{margin:4px 0 0;padding-left:18px}
+.pick{margin-top:12px;border:2px solid var(--gold)}
+.pick h3{margin:0 0 4px;font:700 18px var(--display)}
+.pick .prow{display:grid;grid-template-columns:28px minmax(0,1fr) 44px minmax(0,1.4fr);gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.pick .prow:first-of-type{border-top:0}
+.pick .col{font:700 15px var(--display);text-align:center}
+.pick .raw{font-weight:700;overflow-wrap:anywhere}
+.pick .raw small{display:block;font-weight:600;color:var(--muted)}
+.pick .conf{display:block;font-size:12px;font-weight:700;margin-top:2px}
+.pick .conf.ok{color:var(--goldText)}.pick .conf.chk{color:var(--warn)}
+.pick .tot{font:700 16px var(--display);text-align:right}
+.pick select{width:100%;min-height:44px}
+.pick .grp{margin-top:10px}
+.sendrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px;font-weight:700;font-size:14px}
+.sendrow .ok{color:var(--goldText)}.sendrow .bad{color:var(--warn)}
+@media(max-width:520px){.pick .prow{grid-template-columns:24px minmax(0,1fr) 40px}.pick .prow select{grid-column:2/4}}
+.f{cursor:default}
+.f.tap{cursor:pointer}
+.f .fm{font:700 15px/1.5 var(--display);border-top:1px solid var(--line);min-height:24px;white-space:nowrap;overflow:hidden}
+.f .ft{font:700 14px/1.4 var(--display)!important;min-height:21px}
+.f.need{box-shadow:inset 0 0 0 2px var(--gold)}
+.f.flag{border:2px dashed var(--warn)}
+.keys{grid-template-columns:repeat(7,minmax(0,1fr))!important}.keys button{min-height:52px}.keys button.word,.keys button.undo{font:700 13px var(--body);padding:4px 2px}
+@media(min-width:760px){.keys{grid-template-columns:repeat(14,minmax(0,1fr))!important}}
+</style>
+</head>
+<body>
+<header><div class="wrap hd">
+  <div class="hdtext"><div class="eyebrow">Weston Golf Club · Men's Candlepin</div><h1 id="pageTitle">Weekly Recap</h1><div class="matchline" id="matchline"></div></div>
+  <img class="crest" alt="Weston Golf Club candlepin, 1917" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii0xNiAtMTYgMzMyIDEyMTIiIHdpZHRoPSIzMzIiIGhlaWdodD0iMTIxMiI+CiAgPHRpdGxlPldlc3RvbiBHb2xmIENsdWIgTWVuJ3MgQ2FuZGxlcGluLCAxOTE3PC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYm9keSIgeDE9IjAiIHgyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZDljY2E5Ii8+PHN0b3Agb2Zmc2V0PSIuMTUiIHN0b3AtY29sb3I9IiNlZGUzYzgiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIuMzgiIHN0b3AtY29sb3I9IiNmYmY3ZWMiLz48c3RvcCBvZmZzZXQ9Ii42NCIgc3RvcC1jb2xvcj0iI2YxZThkMiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNkMWMyOWQiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJhbmQiIHgxPSIwIiB4Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzhiMTMyMCIvPjxzdG9wIG9mZnNldD0iLjM4IiBzdG9wLWNvbG9yPSIjYzMxOTJkIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iLjY0IiBzdG9wLWNvbG9yPSIjYjIxNzJhIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2MxMDFiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGNsaXBQYXRoIGlkPSJwaW4iPjxwYXRoIGQ9Ik01OC4wLDAgTDI0Mi4wLDAgUTI3Mi4wLDAgMjc0LjQsMzAuMCBMMjc1LjAsMzguMSBMMjc1LjYsNDYuMSBMMjc2LjIsNTQuMiBMMjc2LjgsNjIuMiBMMjc3LjQsNzAuMyBMMjc4LjAsNzguMyBMMjc4LjUsODYuNCBMMjc5LjEsOTQuNSBMMjc5LjYsMTAyLjUgTDI4MC4yLDExMC42IEwyODAuNywxMTguNiBMMjgxLjIsMTI2LjcgTDI4MS43LDEzNC43IEwyODIuMiwxNDIuOCBMMjgyLjcsMTUwLjkgTDI4My4yLDE1OC45IEwyODMuNywxNjcuMCBMMjg0LjEsMTc1LjAgTDI4NC42LDE4My4xIEwyODUuMCwxOTEuMiBMMjg1LjUsMTk5LjIgTDI4NS45LDIwNy4zIEwyODYuMywyMTUuMyBMMjg2LjcsMjIzLjQgTDI4Ny4xLDIzMS40IEwyODcuNSwyMzkuNSBMMjg3LjksMjQ3LjYgTDI4OC4zLDI1NS42IEwyODguNywyNjMuNyBMMjg5LjAsMjcxLjcgTDI4OS40LDI3OS44IEwyODkuNywyODcuOCBMMjkwLjAsMjk1LjkgTDI5MC40LDMwNC4wIEwyOTAuNywzMTIuMCBMMjkxLjAsMzIwLjEgTDI5MS4zLDMyOC4xIEwyOTEuNiwzMzYuMiBMMjkxLjgsMzQ0LjIgTDI5Mi4xLDM1Mi4zIEwyOTIuNCwzNjAuNCBMMjkyLjYsMzY4LjQgTDI5Mi45LDM3Ni41IEwyOTMuMSwzODQuNSBMMjkzLjMsMzkyLjYgTDI5My41LDQwMC42IEwyOTMuNyw0MDguNyBMMjkzLjksNDE2LjggTDI5NC4xLDQyNC44IEwyOTQuMyw0MzIuOSBMMjk0LjUsNDQwLjkgTDI5NC42LDQ0OS4wIEwyOTQuOCw0NTcuMSBMMjk0LjksNDY1LjEgTDI5NS4xLDQ3My4yIEwyOTUuMiw0ODEuMiBMMjk1LjMsNDg5LjMgTDI5NS40LDQ5Ny4zIEwyOTUuNSw1MDUuNCBMMjk1LjYsNTEzLjUgTDI5NS43LDUyMS41IEwyOTUuNyw1MjkuNiBMMjk1LjgsNTM3LjYgTDI5NS45LDU0NS43IEwyOTUuOSw1NTMuNyBMMjk1LjksNTYxLjggTDI5Ni4wLDU2OS45IEwyOTYuMCw1NzcuOSBMMjk2LjAsNTg2LjAgTDI5Ni4wLDU5NC4wIEwyOTYuMCw2MDIuMSBMMjk2LjAsNjEwLjEgTDI5NS45LDYxOC4yIEwyOTUuOSw2MjYuMyBMMjk1LjksNjM0LjMgTDI5NS44LDY0Mi40IEwyOTUuNyw2NTAuNCBMMjk1LjcsNjU4LjUgTDI5NS42LDY2Ni41IEwyOTUuNSw2NzQuNiBMMjk1LjQsNjgyLjcgTDI5NS4zLDY5MC43IEwyOTUuMiw2OTguOCBMMjk1LjEsNzA2LjggTDI5NC45LDcxNC45IEwyOTQuOCw3MjIuOSBMMjk0LjYsNzMxLjAgTDI5NC41LDczOS4xIEwyOTQuMyw3NDcuMSBMMjk0LjEsNzU1LjIgTDI5My45LDc2My4yIEwyOTMuNyw3NzEuMyBMMjkzLjUsNzc5LjQgTDI5My4zLDc4Ny40IEwyOTMuMSw3OTUuNSBMMjkyLjksODAzLjUgTDI5Mi42LDgxMS42IEwyOTIuNCw4MTkuNiBMMjkyLjEsODI3LjcgTDI5MS44LDgzNS44IEwyOTEuNiw4NDMuOCBMMjkxLjMsODUxLjkgTDI5MS4wLDg1OS45IEwyOTAuNyw4NjguMCBMMjkwLjQsODc2LjAgTDI5MC4wLDg4NC4xIEwyODkuNyw4OTIuMiBMMjg5LjQsOTAwLjIgTDI4OS4wLDkwOC4zIEwyODguNyw5MTYuMyBMMjg4LjMsOTI0LjQgTDI4Ny45LDkzMi40IEwyODcuNSw5NDAuNSBMMjg3LjEsOTQ4LjYgTDI4Ni43LDk1Ni42IEwyODYuMyw5NjQuNyBMMjg1LjksOTcyLjcgTDI4NS41LDk4MC44IEwyODUuMCw5ODguOCBMMjg0LjYsOTk2LjkgTDI4NC4xLDEwMDUuMCBMMjgzLjcsMTAxMy4wIEwyODMuMiwxMDIxLjEgTDI4Mi43LDEwMjkuMSBMMjgyLjIsMTAzNy4yIEwyODEuNywxMDQ1LjMgTDI4MS4yLDEwNTMuMyBMMjgwLjcsMTA2MS40IEwyODAuMiwxMDY5LjQgTDI3OS42LDEwNzcuNSBMMjc5LjEsMTA4NS41IEwyNzguNSwxMDkzLjYgTDI3OC4wLDExMDEuNyBMMjc3LjQsMTEwOS43IEwyNzYuOCwxMTE3LjggTDI3Ni4yLDExMjUuOCBMMjc1LjYsMTEzMy45IEwyNzUuMCwxMTQxLjkgTDI3NC40LDExNTAuMCBRMjcyLjAsMTE4MCAyNDIuMCwxMTgwIEw1OC4wLDExODAgUTI4LjAsMTE4MCAyNS42LDExNTAuMCBMMjUuMCwxMTQxLjkgTDI0LjQsMTEzMy45IEwyMy44LDExMjUuOCBMMjMuMiwxMTE3LjggTDIyLjYsMTEwOS43IEwyMi4wLDExMDEuNyBMMjEuNSwxMDkzLjYgTDIwLjksMTA4NS41IEwyMC40LDEwNzcuNSBMMTkuOCwxMDY5LjQgTDE5LjMsMTA2MS40IEwxOC44LDEwNTMuMyBMMTguMywxMDQ1LjMgTDE3LjgsMTAzNy4yIEwxNy4zLDEwMjkuMSBMMTYuOCwxMDIxLjEgTDE2LjMsMTAxMy4wIEwxNS45LDEwMDUuMCBMMTUuNCw5OTYuOSBMMTUuMCw5ODguOCBMMTQuNSw5ODAuOCBMMTQuMSw5NzIuNyBMMTMuNyw5NjQuNyBMMTMuMyw5NTYuNiBMMTIuOSw5NDguNiBMMTIuNSw5NDAuNSBMMTIuMSw5MzIuNCBMMTEuNyw5MjQuNCBMMTEuMyw5MTYuMyBMMTEuMCw5MDguMyBMMTAuNiw5MDAuMiBMMTAuMyw4OTIuMiBMMTAuMCw4ODQuMSBMOS42LDg3Ni4wIEw5LjMsODY4LjAgTDkuMCw4NTkuOSBMOC43LDg1MS45IEw4LjQsODQzLjggTDguMiw4MzUuOCBMNy45LDgyNy43IEw3LjYsODE5LjYgTDcuNCw4MTEuNiBMNy4xLDgwMy41IEw2LjksNzk1LjUgTDYuNyw3ODcuNCBMNi41LDc3OS40IEw2LjMsNzcxLjMgTDYuMSw3NjMuMiBMNS45LDc1NS4yIEw1LjcsNzQ3LjEgTDUuNSw3MzkuMSBMNS40LDczMS4wIEw1LjIsNzIyLjkgTDUuMSw3MTQuOSBMNC45LDcwNi44IEw0LjgsNjk4LjggTDQuNyw2OTAuNyBMNC42LDY4Mi43IEw0LjUsNjc0LjYgTDQuNCw2NjYuNSBMNC4zLDY1OC41IEw0LjMsNjUwLjQgTDQuMiw2NDIuNCBMNC4xLDYzNC4zIEw0LjEsNjI2LjMgTDQuMSw2MTguMiBMNC4wLDYxMC4xIEw0LjAsNjAyLjEgTDQuMCw1OTQuMCBMNC4wLDU4Ni4wIEw0LjAsNTc3LjkgTDQuMCw1NjkuOSBMNC4xLDU2MS44IEw0LjEsNTUzLjcgTDQuMSw1NDUuNyBMNC4yLDUzNy42IEw0LjMsNTI5LjYgTDQuMyw1MjEuNSBMNC40LDUxMy41IEw0LjUsNTA1LjQgTDQuNiw0OTcuMyBMNC43LDQ4OS4zIEw0LjgsNDgxLjIgTDQuOSw0NzMuMiBMNS4xLDQ2NS4xIEw1LjIsNDU3LjEgTDUuNCw0NDkuMCBMNS41LDQ0MC45IEw1LjcsNDMyLjkgTDUuOSw0MjQuOCBMNi4xLDQxNi44IEw2LjMsNDA4LjcgTDYuNSw0MDAuNiBMNi43LDM5Mi42IEw2LjksMzg0LjUgTDcuMSwzNzYuNSBMNy40LDM2OC40IEw3LjYsMzYwLjQgTDcuOSwzNTIuMyBMOC4yLDM0NC4yIEw4LjQsMzM2LjIgTDguNywzMjguMSBMOS4wLDMyMC4xIEw5LjMsMzEyLjAgTDkuNiwzMDQuMCBMMTAuMCwyOTUuOSBMMTAuMywyODcuOCBMMTAuNiwyNzkuOCBMMTEuMCwyNzEuNyBMMTEuMywyNjMuNyBMMTEuNywyNTUuNiBMMTIuMSwyNDcuNiBMMTIuNSwyMzkuNSBMMTIuOSwyMzEuNCBMMTMuMywyMjMuNCBMMTMuNywyMTUuMyBMMTQuMSwyMDcuMyBMMTQuNSwxOTkuMiBMMTUuMCwxOTEuMiBMMTUuNCwxODMuMSBMMTUuOSwxNzUuMCBMMTYuMywxNjcuMCBMMTYuOCwxNTguOSBMMTcuMywxNTAuOSBMMTcuOCwxNDIuOCBMMTguMywxMzQuNyBMMTguOCwxMjYuNyBMMTkuMywxMTguNiBMMTkuOCwxMTAuNiBMMjAuNCwxMDIuNSBMMjAuOSw5NC41IEwyMS41LDg2LjQgTDIyLjAsNzguMyBMMjIuNiw3MC4zIEwyMy4yLDYyLjIgTDIzLjgsNTQuMiBMMjQuNCw0Ni4xIEwyNS4wLDM4LjEgTDI1LjYsMzAuMCBRMjguMCwwIDU4LjAsMFoiLz48L2NsaXBQYXRoPgogIDwvZGVmcz4KICA8cGF0aCBkPSJNNTguMCwwIEwyNDIuMCwwIFEyNzIuMCwwIDI3NC40LDMwLjAgTDI3NS4wLDM4LjEgTDI3NS42LDQ2LjEgTDI3Ni4yLDU0LjIgTDI3Ni44LDYyLjIgTDI3Ny40LDcwLjMgTDI3OC4wLDc4LjMgTDI3OC41LDg2LjQgTDI3OS4xLDk0LjUgTDI3OS42LDEwMi41IEwyODAuMiwxMTAuNiBMMjgwLjcsMTE4LjYgTDI4MS4yLDEyNi43IEwyODEuNywxMzQuNyBMMjgyLjIsMTQyLjggTDI4Mi43LDE1MC45IEwyODMuMiwxNTguOSBMMjgzLjcsMTY3LjAgTDI4NC4xLDE3NS4wIEwyODQuNiwxODMuMSBMMjg1LjAsMTkxLjIgTDI4NS41LDE5OS4yIEwyODUuOSwyMDcuMyBMMjg2LjMsMjE1LjMgTDI4Ni43LDIyMy40IEwyODcuMSwyMzEuNCBMMjg3LjUsMjM5LjUgTDI4Ny45LDI0Ny42IEwyODguMywyNTUuNiBMMjg4LjcsMjYzLjcgTDI4OS4wLDI3MS43IEwyODkuNCwyNzkuOCBMMjg5LjcsMjg3LjggTDI5MC4wLDI5NS45IEwyOTAuNCwzMDQuMCBMMjkwLjcsMzEyLjAgTDI5MS4wLDMyMC4xIEwyOTEuMywzMjguMSBMMjkxLjYsMzM2LjIgTDI5MS44LDM0NC4yIEwyOTIuMSwzNTIuMyBMMjkyLjQsMzYwLjQgTDI5Mi42LDM2OC40IEwyOTIuOSwzNzYuNSBMMjkzLjEsMzg0LjUgTDI5My4zLDM5Mi42IEwyOTMuNSw0MDAuNiBMMjkzLjcsNDA4LjcgTDI5My45LDQxNi44IEwyOTQuMSw0MjQuOCBMMjk0LjMsNDMyLjkgTDI5NC41LDQ0MC45IEwyOTQuNiw0NDkuMCBMMjk0LjgsNDU3LjEgTDI5NC45LDQ2NS4xIEwyOTUuMSw0NzMuMiBMMjk1LjIsNDgxLjIgTDI5NS4zLDQ4OS4zIEwyOTUuNCw0OTcuMyBMMjk1LjUsNTA1LjQgTDI5NS42LDUxMy41IEwyOTUuNyw1MjEuNSBMMjk1LjcsNTI5LjYgTDI5NS44LDUzNy42IEwyOTUuOSw1NDUuNyBMMjk1LjksNTUzLjcgTDI5NS45LDU2MS44IEwyOTYuMCw1NjkuOSBMMjk2LjAsNTc3LjkgTDI5Ni4wLDU4Ni4wIEwyOTYuMCw1OTQuMCBMMjk2LjAsNjAyLjEgTDI5Ni4wLDYxMC4xIEwyOTUuOSw2MTguMiBMMjk1LjksNjI2LjMgTDI5NS45LDYzNC4zIEwyOTUuOCw2NDIuNCBMMjk1LjcsNjUwLjQgTDI5NS43LDY1OC41IEwyOTUuNiw2NjYuNSBMMjk1LjUsNjc0LjYgTDI5NS40LDY4Mi43IEwyOTUuMyw2OTAuNyBMMjk1LjIsNjk4LjggTDI5NS4xLDcwNi44IEwyOTQuOSw3MTQuOSBMMjk0LjgsNzIyLjkgTDI5NC42LDczMS4wIEwyOTQuNSw3MzkuMSBMMjk0LjMsNzQ3LjEgTDI5NC4xLDc1NS4yIEwyOTMuOSw3NjMuMiBMMjkzLjcsNzcxLjMgTDI5My41LDc3OS40IEwyOTMuMyw3ODcuNCBMMjkzLjEsNzk1LjUgTDI5Mi45LDgwMy41IEwyOTIuNiw4MTEuNiBMMjkyLjQsODE5LjYgTDI5Mi4xLDgyNy43IEwyOTEuOCw4MzUuOCBMMjkxLjYsODQzLjggTDI5MS4zLDg1MS45IEwyOTEuMCw4NTkuOSBMMjkwLjcsODY4LjAgTDI5MC40LDg3Ni4wIEwyOTAuMCw4ODQuMSBMMjg5LjcsODkyLjIgTDI4OS40LDkwMC4yIEwyODkuMCw5MDguMyBMMjg4LjcsOTE2LjMgTDI4OC4zLDkyNC40IEwyODcuOSw5MzIuNCBMMjg3LjUsOTQwLjUgTDI4Ny4xLDk0OC42IEwyODYuNyw5NTYuNiBMMjg2LjMsOTY0LjcgTDI4NS45LDk3Mi43IEwyODUuNSw5ODAuOCBMMjg1LjAsOTg4LjggTDI4NC42LDk5Ni45IEwyODQuMSwxMDA1LjAgTDI4My43LDEwMTMuMCBMMjgzLjIsMTAyMS4xIEwyODIuNywxMDI5LjEgTDI4Mi4yLDEwMzcuMiBMMjgxLjcsMTA0NS4zIEwyODEuMiwxMDUzLjMgTDI4MC43LDEwNjEuNCBMMjgwLjIsMTA2OS40IEwyNzkuNiwxMDc3LjUgTDI3OS4xLDEwODUuNSBMMjc4LjUsMTA5My42IEwyNzguMCwxMTAxLjcgTDI3Ny40LDExMDkuNyBMMjc2LjgsMTExNy44IEwyNzYuMiwxMTI1LjggTDI3NS42LDExMzMuOSBMMjc1LjAsMTE0MS45IEwyNzQuNCwxMTUwLjAgUTI3Mi4wLDExODAgMjQyLjAsMTE4MCBMNTguMCwxMTgwIFEyOC4wLDExODAgMjUuNiwxMTUwLjAgTDI1LjAsMTE0MS45IEwyNC40LDExMzMuOSBMMjMuOCwxMTI1LjggTDIzLjIsMTExNy44IEwyMi42LDExMDkuNyBMMjIuMCwxMTAxLjcgTDIxLjUsMTA5My42IEwyMC45LDEwODUuNSBMMjAuNCwxMDc3LjUgTDE5LjgsMTA2OS40IEwxOS4zLDEwNjEuNCBMMTguOCwxMDUzLjMgTDE4LjMsMTA0NS4zIEwxNy44LDEwMzcuMiBMMTcuMywxMDI5LjEgTDE2LjgsMTAyMS4xIEwxNi4zLDEwMTMuMCBMMTUuOSwxMDA1LjAgTDE1LjQsOTk2LjkgTDE1LjAsOTg4LjggTDE0LjUsOTgwLjggTDE0LjEsOTcyLjcgTDEzLjcsOTY0LjcgTDEzLjMsOTU2LjYgTDEyLjksOTQ4LjYgTDEyLjUsOTQwLjUgTDEyLjEsOTMyLjQgTDExLjcsOTI0LjQgTDExLjMsOTE2LjMgTDExLjAsOTA4LjMgTDEwLjYsOTAwLjIgTDEwLjMsODkyLjIgTDEwLjAsODg0LjEgTDkuNiw4NzYuMCBMOS4zLDg2OC4wIEw5LjAsODU5LjkgTDguNyw4NTEuOSBMOC40LDg0My44IEw4LjIsODM1LjggTDcuOSw4MjcuNyBMNy42LDgxOS42IEw3LjQsODExLjYgTDcuMSw4MDMuNSBMNi45LDc5NS41IEw2LjcsNzg3LjQgTDYuNSw3NzkuNCBMNi4zLDc3MS4zIEw2LjEsNzYzLjIgTDUuOSw3NTUuMiBMNS43LDc0Ny4xIEw1LjUsNzM5LjEgTDUuNCw3MzEuMCBMNS4yLDcyMi45IEw1LjEsNzE0LjkgTDQuOSw3MDYuOCBMNC44LDY5OC44IEw0LjcsNjkwLjcgTDQuNiw2ODIuNyBMNC41LDY3NC42IEw0LjQsNjY2LjUgTDQuMyw2NTguNSBMNC4zLDY1MC40IEw0LjIsNjQyLjQgTDQuMSw2MzQuMyBMNC4xLDYyNi4zIEw0LjEsNjE4LjIgTDQuMCw2MTAuMSBMNC4wLDYwMi4xIEw0LjAsNTk0LjAgTDQuMCw1ODYuMCBMNC4wLDU3Ny45IEw0LjAsNTY5LjkgTDQuMSw1NjEuOCBMNC4xLDU1My43IEw0LjEsNTQ1LjcgTDQuMiw1MzcuNiBMNC4zLDUyOS42IEw0LjMsNTIxLjUgTDQuNCw1MTMuNSBMNC41LDUwNS40IEw0LjYsNDk3LjMgTDQuNyw0ODkuMyBMNC44LDQ4MS4yIEw0LjksNDczLjIgTDUuMSw0NjUuMSBMNS4yLDQ1Ny4xIEw1LjQsNDQ5LjAgTDUuNSw0NDAuOSBMNS43LDQzMi45IEw1LjksNDI0LjggTDYuMSw0MTYuOCBMNi4zLDQwOC43IEw2LjUsNDAwLjYgTDYuNywzOTIuNiBMNi45LDM4NC41IEw3LjEsMzc2LjUgTDcuNCwzNjguNCBMNy42LDM2MC40IEw3LjksMzUyLjMgTDguMiwzNDQuMiBMOC40LDMzNi4yIEw4LjcsMzI4LjEgTDkuMCwzMjAuMSBMOS4zLDMxMi4wIEw5LjYsMzA0LjAgTDEwLjAsMjk1LjkgTDEwLjMsMjg3LjggTDEwLjYsMjc5LjggTDExLjAsMjcxLjcgTDExLjMsMjYzLjcgTDExLjcsMjU1LjYgTDEyLjEsMjQ3LjYgTDEyLjUsMjM5LjUgTDEyLjksMjMxLjQgTDEzLjMsMjIzLjQgTDEzLjcsMjE1LjMgTDE0LjEsMjA3LjMgTDE0LjUsMTk5LjIgTDE1LjAsMTkxLjIgTDE1LjQsMTgzLjEgTDE1LjksMTc1LjAgTDE2LjMsMTY3LjAgTDE2LjgsMTU4LjkgTDE3LjMsMTUwLjkgTDE3LjgsMTQyLjggTDE4LjMsMTM0LjcgTDE4LjgsMTI2LjcgTDE5LjMsMTE4LjYgTDE5LjgsMTEwLjYgTDIwLjQsMTAyLjUgTDIwLjksOTQuNSBMMjEuNSw4Ni40IEwyMi4wLDc4LjMgTDIyLjYsNzAuMyBMMjMuMiw2Mi4yIEwyMy44LDU0LjIgTDI0LjQsNDYuMSBMMjUuMCwzOC4xIEwyNS42LDMwLjAgUTI4LjAsMCA1OC4wLDBaIiBmaWxsPSJ1cmwoI2JvZHkpIi8+CiAgPHJlY3QgY2xpcC1wYXRoPSJ1cmwoI3BpbikiIHg9IjAiIHk9IjU2OS40IiB3aWR0aD0iMzAwIiBoZWlnaHQ9Ijg4LjUiIGZpbGw9InVybCgjYmFuZCkiLz4KICA8cGF0aCBkPSJNNTguMCwwIEwyNDIuMCwwIFEyNzIuMCwwIDI3NC40LDMwLjAgTDI3NS4wLDM4LjEgTDI3NS42LDQ2LjEgTDI3Ni4yLDU0LjIgTDI3Ni44LDYyLjIgTDI3Ny40LDcwLjMgTDI3OC4wLDc4LjMgTDI3OC41LDg2LjQgTDI3OS4xLDk0LjUgTDI3OS42LDEwMi41IEwyODAuMiwxMTAuNiBMMjgwLjcsMTE4LjYgTDI4MS4yLDEyNi43IEwyODEuNywxMzQuNyBMMjgyLjIsMTQyLjggTDI4Mi43LDE1MC45IEwyODMuMiwxNTguOSBMMjgzLjcsMTY3LjAgTDI4NC4xLDE3NS4wIEwyODQuNiwxODMuMSBMMjg1LjAsMTkxLjIgTDI4NS41LDE5OS4yIEwyODUuOSwyMDcuMyBMMjg2LjMsMjE1LjMgTDI4Ni43LDIyMy40IEwyODcuMSwyMzEuNCBMMjg3LjUsMjM5LjUgTDI4Ny45LDI0Ny42IEwyODguMywyNTUuNiBMMjg4LjcsMjYzLjcgTDI4OS4wLDI3MS43IEwyODkuNCwyNzkuOCBMMjg5LjcsMjg3LjggTDI5MC4wLDI5NS45IEwyOTAuNCwzMDQuMCBMMjkwLjcsMzEyLjAgTDI5MS4wLDMyMC4xIEwyOTEuMywzMjguMSBMMjkxLjYsMzM2LjIgTDI5MS44LDM0NC4yIEwyOTIuMSwzNTIuMyBMMjkyLjQsMzYwLjQgTDI5Mi42LDM2OC40IEwyOTIuOSwzNzYuNSBMMjkzLjEsMzg0LjUgTDI5My4zLDM5Mi42IEwyOTMuNSw0MDAuNiBMMjkzLjcsNDA4LjcgTDI5My45LDQxNi44IEwyOTQuMSw0MjQuOCBMMjk0LjMsNDMyLjkgTDI5NC41LDQ0MC45IEwyOTQuNiw0NDkuMCBMMjk0LjgsNDU3LjEgTDI5NC45LDQ2NS4xIEwyOTUuMSw0NzMuMiBMMjk1LjIsNDgxLjIgTDI5NS4zLDQ4OS4zIEwyOTUuNCw0OTcuMyBMMjk1LjUsNTA1LjQgTDI5NS42LDUxMy41IEwyOTUuNyw1MjEuNSBMMjk1LjcsNTI5LjYgTDI5NS44LDUzNy42IEwyOTUuOSw1NDUuNyBMMjk1LjksNTUzLjcgTDI5NS45LDU2MS44IEwyOTYuMCw1NjkuOSBMMjk2LjAsNTc3LjkgTDI5Ni4wLDU4Ni4wIEwyOTYuMCw1OTQuMCBMMjk2LjAsNjAyLjEgTDI5Ni4wLDYxMC4xIEwyOTUuOSw2MTguMiBMMjk1LjksNjI2LjMgTDI5NS45LDYzNC4zIEwyOTUuOCw2NDIuNCBMMjk1LjcsNjUwLjQgTDI5NS43LDY1OC41IEwyOTUuNiw2NjYuNSBMMjk1LjUsNjc0LjYgTDI5NS40LDY4Mi43IEwyOTUuMyw2OTAuNyBMMjk1LjIsNjk4LjggTDI5NS4xLDcwNi44IEwyOTQuOSw3MTQuOSBMMjk0LjgsNzIyLjkgTDI5NC42LDczMS4wIEwyOTQuNSw3MzkuMSBMMjk0LjMsNzQ3LjEgTDI5NC4xLDc1NS4yIEwyOTMuOSw3NjMuMiBMMjkzLjcsNzcxLjMgTDI5My41LDc3OS40IEwyOTMuMyw3ODcuNCBMMjkzLjEsNzk1LjUgTDI5Mi45LDgwMy41IEwyOTIuNiw4MTEuNiBMMjkyLjQsODE5LjYgTDI5Mi4xLDgyNy43IEwyOTEuOCw4MzUuOCBMMjkxLjYsODQzLjggTDI5MS4zLDg1MS45IEwyOTEuMCw4NTkuOSBMMjkwLjcsODY4LjAgTDI5MC40LDg3Ni4wIEwyOTAuMCw4ODQuMSBMMjg5LjcsODkyLjIgTDI4OS40LDkwMC4yIEwyODkuMCw5MDguMyBMMjg4LjcsOTE2LjMgTDI4OC4zLDkyNC40IEwyODcuOSw5MzIuNCBMMjg3LjUsOTQwLjUgTDI4Ny4xLDk0OC42IEwyODYuNyw5NTYuNiBMMjg2LjMsOTY0LjcgTDI4NS45LDk3Mi43IEwyODUuNSw5ODAuOCBMMjg1LjAsOTg4LjggTDI4NC42LDk5Ni45IEwyODQuMSwxMDA1LjAgTDI4My43LDEwMTMuMCBMMjgzLjIsMTAyMS4xIEwyODIuNywxMDI5LjEgTDI4Mi4yLDEwMzcuMiBMMjgxLjcsMTA0NS4zIEwyODEuMiwxMDUzLjMgTDI4MC43LDEwNjEuNCBMMjgwLjIsMTA2OS40IEwyNzkuNiwxMDc3LjUgTDI3OS4xLDEwODUuNSBMMjc4LjUsMTA5My42IEwyNzguMCwxMTAxLjcgTDI3Ny40LDExMDkuNyBMMjc2LjgsMTExNy44IEwyNzYuMiwxMTI1LjggTDI3NS42LDExMzMuOSBMMjc1LjAsMTE0MS45IEwyNzQuNCwxMTUwLjAgUTI3Mi4wLDExODAgMjQyLjAsMTE4MCBMNTguMCwxMTgwIFEyOC4wLDExODAgMjUuNiwxMTUwLjAgTDI1LjAsMTE0MS45IEwyNC40LDExMzMuOSBMMjMuOCwxMTI1LjggTDIzLjIsMTExNy44IEwyMi42LDExMDkuNyBMMjIuMCwxMTAxLjcgTDIxLjUsMTA5My42IEwyMC45LDEwODUuNSBMMjAuNCwxMDc3LjUgTDE5LjgsMTA2OS40IEwxOS4zLDEwNjEuNCBMMTguOCwxMDUzLjMgTDE4LjMsMTA0NS4zIEwxNy44LDEwMzcuMiBMMTcuMywxMDI5LjEgTDE2LjgsMTAyMS4xIEwxNi4zLDEwMTMuMCBMMTUuOSwxMDA1LjAgTDE1LjQsOTk2LjkgTDE1LjAsOTg4LjggTDE0LjUsOTgwLjggTDE0LjEsOTcyLjcgTDEzLjcsOTY0LjcgTDEzLjMsOTU2LjYgTDEyLjksOTQ4LjYgTDEyLjUsOTQwLjUgTDEyLjEsOTMyLjQgTDExLjcsOTI0LjQgTDExLjMsOTE2LjMgTDExLjAsOTA4LjMgTDEwLjYsOTAwLjIgTDEwLjMsODkyLjIgTDEwLjAsODg0LjEgTDkuNiw4NzYuMCBMOS4zLDg2OC4wIEw5LjAsODU5LjkgTDguNyw4NTEuOSBMOC40LDg0My44IEw4LjIsODM1LjggTDcuOSw4MjcuNyBMNy42LDgxOS42IEw3LjQsODExLjYgTDcuMSw4MDMuNSBMNi45LDc5NS41IEw2LjcsNzg3LjQgTDYuNSw3NzkuNCBMNi4zLDc3MS4zIEw2LjEsNzYzLjIgTDUuOSw3NTUuMiBMNS43LDc0Ny4xIEw1LjUsNzM5LjEgTDUuNCw3MzEuMCBMNS4yLDcyMi45IEw1LjEsNzE0LjkgTDQuOSw3MDYuOCBMNC44LDY5OC44IEw0LjcsNjkwLjcgTDQuNiw2ODIuNyBMNC41LDY3NC42IEw0LjQsNjY2LjUgTDQuMyw2NTguNSBMNC4zLDY1MC40IEw0LjIsNjQyLjQgTDQuMSw2MzQuMyBMNC4xLDYyNi4zIEw0LjEsNjE4LjIgTDQuMCw2MTAuMSBMNC4wLDYwMi4xIEw0LjAsNTk0LjAgTDQuMCw1ODYuMCBMNC4wLDU3Ny45IEw0LjAsNTY5LjkgTDQuMSw1NjEuOCBMNC4xLDU1My43IEw0LjEsNTQ1LjcgTDQuMiw1MzcuNiBMNC4zLDUyOS42IEw0LjMsNTIxLjUgTDQuNCw1MTMuNSBMNC41LDUwNS40IEw0LjYsNDk3LjMgTDQuNyw0ODkuMyBMNC44LDQ4MS4yIEw0LjksNDczLjIgTDUuMSw0NjUuMSBMNS4yLDQ1Ny4xIEw1LjQsNDQ5LjAgTDUuNSw0NDAuOSBMNS43LDQzMi45IEw1LjksNDI0LjggTDYuMSw0MTYuOCBMNi4zLDQwOC43IEw2LjUsNDAwLjYgTDYuNywzOTIuNiBMNi45LDM4NC41IEw3LjEsMzc2LjUgTDcuNCwzNjguNCBMNy42LDM2MC40IEw3LjksMzUyLjMgTDguMiwzNDQuMiBMOC40LDMzNi4yIEw4LjcsMzI4LjEgTDkuMCwzMjAuMSBMOS4zLDMxMi4wIEw5LjYsMzA0LjAgTDEwLjAsMjk1LjkgTDEwLjMsMjg3LjggTDEwLjYsMjc5LjggTDExLjAsMjcxLjcgTDExLjMsMjYzLjcgTDExLjcsMjU1LjYgTDEyLjEsMjQ3LjYgTDEyLjUsMjM5LjUgTDEyLjksMjMxLjQgTDEzLjMsMjIzLjQgTDEzLjcsMjE1LjMgTDE0LjEsMjA3LjMgTDE0LjUsMTk5LjIgTDE1LjAsMTkxLjIgTDE1LjQsMTgzLjEgTDE1LjksMTc1LjAgTDE2LjMsMTY3LjAgTDE2LjgsMTU4LjkgTDE3LjMsMTUwLjkgTDE3LjgsMTQyLjggTDE4LjMsMTM0LjcgTDE4LjgsMTI2LjcgTDE5LjMsMTE4LjYgTDE5LjgsMTEwLjYgTDIwLjQsMTAyLjUgTDIwLjksOTQuNSBMMjEuNSw4Ni40IEwyMi4wLDc4LjMgTDIyLjYsNzAuMyBMMjMuMiw2Mi4yIEwyMy44LDU0LjIgTDI0LjQsNDYuMSBMMjUuMCwzOC4xIEwyNS42LDMwLjAgUTI4LjAsMCA1OC4wLDBaIiBmaWxsPSJub25lIiBzdHJva2U9IiNhODk1NmEiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzIuMCwyMDYuNCkgc2NhbGUoMC40MTQwNCkiIGZpbGw9IiMwMjM5NzYiIGZpbGwtcnVsZT0iZXZlbm9kZCI+PHBhdGggZD0iTTI0NS4wLDc2NC4wQzIzNS44LDc2My45IDIyOC44LDc2My43IDIyNC4wLDc2Mi40QzIxOS4yLDc2MS4xIDIxMi42LDc2Mi4xIDIxNi4yLDc1Ni4wQzIxOS44LDc0OS45IDI0MC4wLDczNy4wIDI0NS41LDcyNi4wQzI1MS4xLDcxNS4wIDI1Mi4yLDcwNy44IDI0OS43LDY5MC4wQzI0Ny4yLDY3Mi4yIDIzNC42LDYzMy4wIDIzMC40LDYxOS4wQzIyNi4xLDYwNS4wIDIyNy44LDYxMS4yIDIyNC4yLDYwNi4wQzIyMC42LDYwMC44IDIxMy4yLDU5MS40IDIwOS4wLDU4OC4wQzIwNC44LDU4NC42IDIwMy4zLDU4NC4wIDE5OS4wLDU4NS41QzE5NC43LDU4Ny4wIDE4Ny4wLDU5NC42IDE4My4wLDU5Ni45QzE3OS4wLDU5OS4yIDE3OS43LDU5OS43IDE3NS4wLDU5OS4xQzE3MC4zLDU5OC41IDE2NC41LDU5NS4xIDE1NS4wLDU5My41QzE0NS41LDU5MS45IDEyOS43LDU4OS4xIDExOC4wLDU4OS41QzEwNi4zLDU4OS45IDkzLjUsNTk3LjAgODUuMCw1OTUuOEM3Ni41LDU5NC41IDczLjEsNTg1LjAgNjcuMCw1ODIuMEM2MC45LDU3OS4xIDU3LjksNTg2LjAgNDguNSw1NzguMEMzOS4xLDU3MC4wIDE2LjUsNTQzLjcgMTAuNyw1MzQuMEM0LjksNTI0LjMgMTMuNiw1MjUuMCAxMy41LDUyMC4wQzEzLjMsNTE1LjAgMTAuMSw1MDcuNyA5LjgsNTA0LjBDOS40LDUwMC4zIDkuNiw0OTkuOSAxMS4zLDQ5OC4wQzEzLjAsNDk2LjEgMTUuMiw0OTMuMyAyMC4wLDQ5Mi44QzI0LjgsNDkyLjMgMzUuMCw0OTcuNCA0MC4wLDQ5NS4wQzQ1LjAsNDkyLjUgNDguNSw0ODIuMiA0OS44LDQ3OC4wQzUxLjAsNDczLjggNTEuMiw0NzQuNSA0Ny43LDQ3MC4wQzQ0LjIsNDY1LjUgMzIuMiw0NTUuMiAyOC45LDQ1MS4wQzI1LjUsNDQ2LjggMjcuMiw0NDYuNyAyNy43LDQ0NS4wQzI4LjIsNDQzLjMgMjguMSw0NDIuMiAzMi4wLDQ0MC42QzM1LjksNDM5LjEgNDUuMyw0MzcuNyA1MS4wLDQzNS41QzU2LjcsNDMzLjQgNjAuMyw0MjguMSA2Ni4wLDQyNy42QzcxLjcsNDI3LjIgNzguNyw0MzIuOSA4NS4wLDQzMy4wQzkxLjMsNDMzLjAgOTYuMiw0MjguMCAxMDQuMCw0MjcuOUMxMTEuOCw0MjcuOCAxMjAuNSw0MzIuOCAxMzIuMCw0MzIuNEMxNDMuNSw0MzEuOSAxNTguMiw0MjYuMiAxNzMuMCw0MjUuNEMxODcuOCw0MjQuNSAyMTEuMyw0MjcuOSAyMjEuMCw0MjcuNUMyMzAuNyw0MjcuMSAyMjguNSw0MjUuNiAyMzEuMCw0MjMuMEMyMzMuNSw0MjAuNCAyMzUuMyw0MTUuNyAyMzYuMiw0MTIuMEMyMzcuMSw0MDguMyAyMzcuNSw0MDMuNyAyMzYuMyw0MDEuMEMyMzUuMSwzOTguMyAyMzYuOSwzOTYuOSAyMjkuMCwzOTUuN0MyMjEuMSwzOTQuNiAxOTkuNSwzOTMuMyAxODkuMCwzOTQuMUMxNzguNSwzOTQuOSAxNzMuMywzOTkuMSAxNjYuMCw0MDAuM0MxNTguNyw0MDEuNSAxNDkuNSw0MDEuNyAxNDUuMCw0MDEuMUMxNDAuNSw0MDAuNiAxNDAuNSwzOTkuMCAxMzkuMCwzOTcuMEMxMzcuNSwzOTUuMCAxMzUuMSwzOTMuMiAxMzUuNywzODkuMEMxMzYuNCwzODQuOCAxNDIuMiwzNzYuMCAxNDIuOSwzNzIuMEMxNDMuNSwzNjguMCAxNDIuMywzNjYuMyAxMzkuNSwzNjUuMEMxMzYuNiwzNjMuNyAxMzAuNywzNjIuMCAxMjUuOCwzNjQuMEMxMjAuOSwzNjYuMCAxMTUuMCwzNzQuMCAxMTAuMCwzNzYuOEMxMDUuMCwzNzkuNyAxMDEuMywzODMuMiA5Ni4wLDM4MC45QzkwLjcsMzc4LjcgODUuMCwzNjYuMSA3OC4wLDM2My4zQzcxLjAsMzYwLjUgNTkuNSwzNjQuNSA1NC4wLDM2NC4yQzQ4LjUsMzYzLjggNDguNSwzNjQuOCA0NS4wLDM2MS4yQzQxLjUsMzU3LjcgMzUuMCwzNDkuMiAzMi44LDM0My4wQzMwLjYsMzM2LjggMjkuNCwzMzAuMSAzMS45LDMyNC4wQzM0LjQsMzE3LjkgNDIuOCwzMTAuMiA0OC4wLDMwNi40QzUzLjIsMzAyLjUgNTcuMiwzMDEuMyA2My4wLDMwMC45QzY4LjgsMzAwLjUgNzguNSwzMDQuNCA4My4wLDMwNC4xQzg3LjUsMzAzLjggODkuMiwzMDEuMiA5MC4wLDI5OS4wQzkwLjgsMjk2LjggOTIuNCwyOTMuNSA4OC4wLDI5MS4wQzgzLjUsMjg4LjUgNjguNSwyODcuNSA2My41LDI4NC4wQzU4LjQsMjgwLjUgNTguMiwyNzMuOCA1Ny42LDI3MC4wQzU3LjAsMjY2LjIgNTYuMSwyNjYuMSA2MC4wLDI2MS4zQzYzLjksMjU2LjQgNzIuMSwyNDQuNiA4MS4wLDI0MS4wQzg5LjgsMjM3LjQgMTAyLjUsMjQxLjQgMTEzLjAsMjM5LjRDMTIzLjUsMjM3LjUgMTM3LjIsMjMwLjcgMTQ0LjAsMjI5LjJDMTUwLjgsMjI3LjYgMTQ5LjcsMjI4LjYgMTU0LjAsMjMwLjJDMTU4LjMsMjMxLjkgMTY1LjUsMjM3LjIgMTcwLjAsMjM5LjBDMTc0LjUsMjQwLjggMTcxLjAsMjQxLjQgMTgxLjAsMjQxLjBDMTkxLjAsMjQwLjUgMjIwLjksMjM4LjEgMjMwLjAsMjM2LjJDMjM5LjEsMjM0LjQgMjM1LjEsMjMzLjIgMjM1LjgsMjMwLjBDMjM2LjQsMjI2LjggMjM2LjcsMjIxLjUgMjM0LjEsMjE3LjBDMjMxLjUsMjEyLjUgMjIwLjYsMjA4LjAgMjIwLjMsMjAzLjBDMjE5LjksMTk4LjAgMjI5LjgsMTkxLjIgMjMyLjAsMTg3LjBDMjM0LjIsMTgyLjggMjMzLjUsMTgwLjIgMjMzLjQsMTc4LjBDMjMzLjIsMTc1LjggMjM2LjcsMTc1LjQgMjMxLjAsMTczLjZDMjI1LjMsMTcxLjggMjA2LjAsMTcxLjggMTk5LjIsMTY3LjBDMTkyLjQsMTYyLjIgMTk0LjksMTUwLjQgMTkwLjIsMTQ1LjBDMTg1LjUsMTM5LjYgMTc2LjcsMTM5LjIgMTcxLjAsMTM0LjdDMTY1LjMsMTMwLjMgMTU5LjgsMTIwLjcgMTU2LjAsMTE4LjNDMTUyLjIsMTE1LjggMTUxLjcsMTE3LjIgMTQ4LjAsMTE5LjlDMTQ0LjMsMTIyLjUgMTM4LjMsMTMxLjUgMTM0LjAsMTM0LjJDMTI5LjcsMTM2LjkgMTI5LjcsMTM4LjIgMTIyLjAsMTM2LjFDMTE0LjMsMTM0LjAgOTcuMiwxMjcuMCA4OC4wLDEyMS41Qzc4LjgsMTE1LjkgNzAuNywxMDcuNyA2Ni43LDEwMy4wQzYyLjgsOTguMyA2NC4zLDk1LjYgNjQuNSw5My4wQzY0LjcsOTAuNCA2MC4xLDg3LjIgNjguMCw4Ny42Qzc1LjksODcuOSAxMDIuNCw5NC44IDExMi4wLDk1LjJDMTIxLjYsOTUuNiAxMjEuOSw5Mi4yIDEyNS42LDkwLjBDMTI5LjIsODcuOCAxMzIuMSw4NS4wIDEzNC4wLDgyLjJDMTM1LjksNzkuMyAxMzYuOCw3Ni40IDEzNy4wLDczLjBDMTM3LjEsNjkuNiAxMzcuNyw2Ny40IDEzNS4wLDYxLjdDMTMyLjMsNTYuMSAxMjIuOSw0Ni4zIDEyMC44LDM5LjBDMTE4LjcsMzEuNyAxMjEuNCwyMi40IDEyMi40LDE4LjBDMTIzLjQsMTMuNiAxMjAuNCwxMC44IDEyNy4wLDEyLjhDMTMzLjYsMTQuOCAxNTQuMywyNy4wIDE2Mi4wLDI5LjhDMTY5LjcsMzIuNiAxNjguMywzMS4yIDE3My4wLDI5LjhDMTc3LjcsMjguNCAxODIuNywyMC42IDE5MC4wLDIxLjNDMTk3LjMsMjEuOSAyMTAuOCwzMi4wIDIxNy4wLDMzLjZDMjIzLjIsMzUuMiAyMjMuOCwzMy42IDIyNy41LDMxLjBDMjMxLjEsMjguNCAyMzQuNywyMS4wIDIzOS4wLDE4LjFDMjQzLjMsMTUuMiAyNDYuOCwxNC42IDI1My4wLDEzLjRDMjU5LjIsMTIuMiAyNjkuMiwxMC4zIDI3Ni4wLDEwLjhDMjgyLjgsMTEuMyAyODcuMiwxMS41IDI5NC4wLDE2LjRDMzAwLjgsMjEuMiAzMTEuNCwzMy42IDMxNi41LDQwLjBDMzIxLjcsNDYuNCAzMjAuMiw1MC44IDMyNC45LDU1LjBDMzI5LjYsNTkuMiAzNDAuOCw2MS41IDM0NC43LDY1LjBDMzQ4LjYsNjguNSAzNDguOCw3MS43IDM0OC4zLDc2LjBDMzQ3LjgsODAuMyAzNDYuNiw4Ni40IDM0MS44LDkxLjBDMzM2LjksOTUuNiAzMjQuMyw5OC42IDMxOS4wLDEwMy44QzMxMy43LDEwOS4xIDMxNS4wLDExOC4wIDMxMC4wLDEyMi42QzMwNS4wLDEyNy4zIDI5Mi41LDEyOS43IDI4OS4wLDEzMS42QzI4NS41LDEzMy41IDI4Ni45LDEzMS45IDI4OS4xLDEzNC4wQzI5MS4yLDEzNi4xIDI5Ny43LDE0MS43IDMwMi4wLDE0NC4xQzMwNi4zLDE0Ni41IDMwNy44LDE0OC42IDMxNS4wLDE0OC40QzMyMi4yLDE0OC4yIDMzOC4zLDE0My40IDM0NS4wLDE0Mi43QzM1MS43LDE0Mi4xIDM1Mi44LDE0My4yIDM1NS4wLDE0NC42QzM1Ny4yLDE0NS45IDM1Ny42LDE0NS4zIDM1OC4yLDE1MS4wQzM1OC44LDE1Ni43IDM1Ny45LDE3Mi40IDM1OC42LDE3OS4wQzM1OS4yLDE4NS42IDM1OC4xLDE4Ni42IDM2Mi4wLDE5MC44QzM2NS45LDE5NS4wIDM3Ni44LDE5OC45IDM4Mi4wLDIwNC4zQzM4Ny4yLDIwOS42IDM4OC40LDIxOC42IDM5My4wLDIyMy4wQzM5Ny43LDIyNy40IDQwNi41LDIyOC40IDQxMC4wLDIzMC41QzQxMy41LDIzMi42IDQxMy41LDIzMy40IDQxNC4wLDIzNS42QzQxNC41LDIzNy45IDQxNC4zLDI0MS4xIDQxMy4xLDI0NC4wQzQxMi4wLDI0Ni45IDQxMi45LDI0OS43IDQwNy4yLDI1My4wQzQwMS41LDI1Ni4zIDM4OC4wLDI1Ny4zIDM3OS4wLDI2NC4wQzM3MC4wLDI3MC44IDM2MC44LDI4OC43IDM1My4wLDI5My41QzM0NS4yLDI5OC4zIDMzNi44LDI5Mi4yIDMzMi4wLDI5Mi44QzMyNy4yLDI5My40IDMyNS41LDI5NC40IDMyNC4wLDI5Ny4wQzMyMi41LDI5OS42IDMxOS43LDMwNS42IDMyMy4wLDMwOC4yQzMyNi4zLDMxMC44IDMzOS43LDMxMC45IDM0NC4wLDMxMi44QzM0OC4zLDMxNC42IDM0OC4zLDMxNi43IDM0OS4wLDMxOS40QzM0OS43LDMyMi4xIDM0OS45LDMyNS4wIDM0Ny45LDMyOS4wQzM0NS45LDMzMy4wIDM0MC41LDM0MC41IDMzNy4wLDM0My42QzMzMy41LDM0Ni43IDMzMS4yLDM0Ni44IDMyNy4wLDM0Ny42QzMyMi44LDM0OC40IDMxNi41LDM0OC43IDMxMi4wLDM0OC4zQzMwNy41LDM0Ny45IDMwNS4zLDM0Ny45IDMwMC4wLDM0NS4zQzI5NC43LDM0Mi42IDI4NC44LDMzNC4yIDI4MC4wLDMzMi42QzI3NS4yLDMzMS4xIDI3My4wLDMzMy4xIDI3MC45LDMzNi4wQzI2OC44LDMzOC45IDI2Ny40LDM0NS4yIDI2Ny42LDM1MC4wQzI2Ny43LDM1NC44IDI2OC43LDM2MC4wIDI3MS45LDM2NS4wQzI3NS4xLDM3MC4wIDI4MS43LDM3Ni4wIDI4Ni42LDM4MC4wQzI5MS40LDM4NC4wIDI5Ny45LDM4Ni41IDMwMS4wLDM4OS4xQzMwNC4xLDM5MS44IDMwNS4xLDM5My4yIDMwNC45LDM5Ni4wQzMwNC43LDM5OC44IDMwNS4wLDQwMy4xIDMwMC4wLDQwNS43QzI5NS4wLDQwOC4zIDI4MC4zLDQwOS4wIDI3NS4wLDQxMS43QzI2OS43LDQxNC40IDI2OS43LDQxNy4wIDI2OC4wLDQyMi4wQzI2Ni4zLDQyNy4wIDI2My4zLDQzNS41IDI2NS4wLDQ0Mi4wQzI2Ni43LDQ0OC41IDI3Ni4wLDQ1My44IDI3OC40LDQ2MS4wQzI4MC44LDQ2OC4yIDI3Ny4xLDQ4MC41IDI3OS42LDQ4NS4wQzI4Mi4wLDQ4OS41IDI4OS4xLDQ4OC42IDI5My4wLDQ4Ny43QzI5Ni45LDQ4Ni45IDMwMC45LDQ4My42IDMwMy4wLDQ4MC4wQzMwNS4wLDQ3Ni40IDMwNy4yLDQ3MS4yIDMwNS4yLDQ2Ni4wQzMwMy4zLDQ2MC44IDI5My43LDQ1Mi44IDI5MS4zLDQ0OS4wQzI4OC45LDQ0NS4yIDI4OC42LDQ0Ni40IDI5MC43LDQ0My4wQzI5Mi45LDQzOS42IDI5OC4xLDQzMi44IDMwNC4wLDQyOC40QzMwOS45LDQyNC4wIDMxOC41LDQyNC43IDMyNi4wLDQxNi41QzMzMy41LDQwOC4zIDM0My41LDM4NS42IDM0OS4wLDM3OS4yQzM1NC41LDM3Mi44IDM1MS41LDM3Ni4zIDM1OS4wLDM3Ny44QzM2Ni41LDM3OS40IDM4Mi4zLDM4OS40IDM5NC4wLDM4OC40QzQwNS43LDM4Ny41IDQyMS4yLDM3NC4zIDQyOS4wLDM3Mi4wQzQzNi44LDM2OS43IDQzNi4yLDM3Mi42IDQ0MS4wLDM3NC44QzQ0NS44LDM3Ny4wIDQ1MC4zLDM4Ni44IDQ1OC4wLDM4NS4zQzQ2NS43LDM4My44IDQ3Ny4zLDM2Ny44IDQ4Ny4wLDM2NS44QzQ5Ni43LDM2My44IDUwOS41LDM3MC40IDUxNi4wLDM3My4zQzUyMi41LDM3Ni4yIDUyNC41LDM4MC40IDUyNi4wLDM4My4wQzUyNy42LDM4NS42IDUyNy4zLDM4NS4yIDUyNS4yLDM4OS4wQzUyMy4xLDM5Mi44IDUxNy4wLDM5Ny4wIDUxMy41LDQwNi4wQzUwOS45LDQxNS4wIDUxMC4yLDQzMi41IDUwMy44LDQ0My4wQzQ5Ny40LDQ1My41IDQ4MS4zLDQ2NC4zIDQ3NS4wLDQ2OS4wQzQ2OC43LDQ3My43IDQ3MC43LDQ3MS40IDQ2Ni4wLDQ3MS4wQzQ2MS4zLDQ3MC43IDQ1MS4wLDQ2Ni41IDQ0Ny4wLDQ2Ni44QzQ0My4wLDQ2Ny4yIDQ0Mi4wLDQ3MS40IDQ0Mi4zLDQ3My4wQzQ0Mi42LDQ3NC42IDQzNy45LDQ3NS40IDQ0OS4wLDQ3Ni42QzQ2MC4xLDQ3Ny45IDQ5My4yLDQ4MC45IDUwOS4wLDQ4MC42QzUyNC44LDQ4MC4zIDUzNi45LDQ3NC44IDU0NC4wLDQ3NC45QzU1MS4xLDQ3NC45IDU1MC44LDQ3OC4wIDU1MS4zLDQ4MS4wQzU1MS44LDQ4NC4wIDU1Mi4yLDQ4OC4zIDU0Ni45LDQ5My4wQzU0MS41LDQ5Ny43IDUyNS42LDUwNi4yIDUxOS4wLDUwOS4zQzUxMi40LDUxMi4zIDUxNC4yLDUxMS41IDUwNy4wLDUxMS40QzQ5OS44LDUxMS4zIDQ4My44LDUwNi41IDQ3Ni4wLDUwOC42QzQ2OC4yLDUxMC44IDQ2My44LDUyMS4xIDQ2MC4wLDUyNC4yQzQ1Ni4yLDUyNy4zIDQ1Ni40LDUyNy4zIDQ1My4wLDUyNy4zQzQ0OS42LDUyNy4zIDQ0NC40LDUyNy44IDQzOS43LDUyNC4wQzQzNS4xLDUyMC4yIDQyOS44LDUwOC4wIDQyNS4wLDUwNC41QzQyMC4yLDUwMS4wIDQxNS40LDUwMS4xIDQxMS4wLDUwMy4wQzQwNi42LDUwNC45IDM5OS44LDUxMC4zIDM5OC41LDUxNi4wQzM5Ny4yLDUyMS43IDQwMy4xLDUzMS44IDQwMy4xLDUzNy4wQzQwMy4xLDU0Mi4yIDQwMS4xLDU0NC41IDM5OC40LDU0Ny4wQzM5NS44LDU0OS41IDM5Mi43LDU1Mi4xIDM4Ny4wLDU1MS45QzM4MS4zLDU1MS43IDM2OS44LDU0My43IDM2NC4wLDU0NS43QzM1OC4yLDU0Ny42IDM1NS4zLDU2MS4yIDM1Mi4wLDU2My43QzM0OC43LDU2Ni4yIDM0OC4yLDU2My42IDM0NC4wLDU2MC43QzMzOS44LDU1Ny43IDMzMC44LDU0OC40IDMyNy4wLDU0Ni4wQzMyMy4yLDU0My42IDMyMi42LDU0NC43IDMyMS4wLDU0Ni4yQzMxOS40LDU0Ny43IDMxOC40LDU0OC41IDMxNy4yLDU1NS4wQzMxNi4wLDU2MS41IDMxNi4yLDU3NS4yIDMxMy44LDU4NS4wQzMxMS41LDU5NC44IDMwNS43LDYwMi43IDMwMi45LDYxNC4wQzMwMC4yLDYyNS4zIDI5OC4yLDYzNS4wIDI5Ny4zLDY1My4wQzI5Ni41LDY3MS4wIDI5NS40LDcwNC43IDI5Ny43LDcyMi4wQzMwMC4wLDczOS4zIDMwOS43LDc1MC43IDMxMS4wLDc1Ny4wQzMxMi40LDc2My4zIDMxMS4zLDc1OS4wIDMwNi4wLDc2MC4wQzMwMC43LDc2MS4xIDI4OS4yLDc2Mi41IDI3OS4wLDc2My4yQzI2OC44LDc2My44IDI1NC4yLDc2NC4xIDI0NS4wLDc2NC4wWiBNMjIzLjgsMTI0LjBDMjI4LjEsMTIzLjMgMjM4LjgsMTIwLjggMjQzLjIsMTE5LjBDMjQ3LjcsMTE3LjIgMjQ4LjEsMTE4LjggMjUwLjYsMTEzLjBDMjUzLjEsMTA3LjIgMjU3LjYsOTAuMyAyNTguMSw4NC4wQzI1OC42LDc3LjcgMjU2LjAsNzYuNSAyNTMuNSw3NS4wQzI1MC45LDczLjUgMjQ3LjEsNzIuMiAyNDMuMCw3NS4wQzIzOC45LDc3LjkgMjMzLjcsODQuOCAyMjkuMCw5Mi4wQzIyNC40LDk5LjIgMjE3LjAsMTEyLjggMjE1LjIsMTE4LjBDMjEzLjQsMTIzLjIgMjE2LjYsMTIyLjUgMjE4LjAsMTIzLjVDMjE5LjQsMTI0LjUgMjE5LjYsMTI0LjcgMjIzLjgsMTI0LjBaIE0yMDAuMCwyMTUuMEMxOTEuMywyMTQuMCAxNjkuMywyMDUuMyAxNTcuMCwyMDUuMEMxNDQuNywyMDQuNyAxMzMuNSwyMTIuNCAxMjYuMCwyMTMuMkMxMTguNSwyMTMuOSAxMTUuMSwyMTEuOSAxMTIuMCwyMDkuN0MxMDguOSwyMDcuNSAxMDYuOCwyMDUuMyAxMDcuNywyMDAuMEMxMDguNiwxOTQuNyAxMTYuMSwxODUuMCAxMTcuNiwxNzguMEMxMTkuMiwxNzEuMCAxMTUuNiwxNjIuNCAxMTcuMCwxNTguMEMxMTguNCwxNTMuNiAxMjEuNywxNTIuOSAxMjYuMCwxNTEuNUMxMzAuMywxNTAuMSAxMzUuMywxNDcuNCAxNDMuMCwxNDkuOEMxNTAuNywxNTIuMiAxNjMuOSwxNjIuMiAxNzIuMCwxNjYuMUMxODAuMSwxNjkuOSAxODQuMiwxNjcuMCAxOTEuNSwxNzMuMEMxOTguOSwxNzkuMCAyMTMuMSwxOTUuNyAyMTYuMSwyMDIuMEMyMTkuMCwyMDguMyAyMTIuMCwyMDguOCAyMDkuMywyMTEuMEMyMDYuNiwyMTMuMiAyMDguNywyMTYuMCAyMDAuMCwyMTUuMFogTTI4Ni45LDIxNC4wQzI5MS4wLDIxMy40IDI5My4wLDIxMi41IDI5NS4zLDIxMS4wQzI5Ny41LDIwOS41IDI5OS40LDIwNy41IDMwMC40LDIwNS4wQzMwMS4zLDIwMi41IDMwMS42LDE5OC41IDMwMC45LDE5Ni4wQzMwMC4xLDE5My41IDMwMC42LDE5MS41IDI5Ni4wLDE5MC4wQzI5MS40LDE4OC41IDI3OS4zLDE4Ni4wIDI3My4wLDE4Ni44QzI2Ni43LDE4Ny43IDI2MS4yLDE5Mi4xIDI1OC40LDE5NS4wQzI1NS42LDE5Ny45IDI1NS43LDIwMS4zIDI1Ni4yLDIwNC4wQzI1Ni43LDIwNi43IDI1OC43LDIwOS4zIDI2MS4yLDIxMS4wQzI2My42LDIxMi43IDI2Ni43LDIxMy45IDI3MS4wLDIxNC40QzI3NS4zLDIxNC45IDI4Mi45LDIxNC42IDI4Ni45LDIxNC4wWiBNMjgyLjIsMzAxLjBDMjg1LjIsMzAwLjEgMjg3LjksMjk5LjUgMjkwLjksMjk1LjBDMjkzLjgsMjkwLjUgMjk4LjUsMjc5LjMgMzAwLjAsMjc0LjBDMzAxLjUsMjY4LjcgMzAxLjIsMjY2LjEgMzAwLjAsMjYzLjNDMjk4LjgsMjYwLjUgMjk1LjQsMjU3LjYgMjkzLjAsMjU3LjBDMjkwLjYsMjU2LjUgMjg3LjYsMjU2LjIgMjg1LjcsMjYwLjBDMjgzLjksMjYzLjggMjg0LjQsMjc0LjUgMjgxLjcsMjgwLjBDMjc5LjAsMjg1LjUgMjcxLjAsMjg5LjYgMjY5LjYsMjkzLjBDMjY4LjEsMjk2LjQgMjcwLjksMjk5LjMgMjczLjAsMzAwLjZDMjc1LjEsMzAyLjAgMjc5LjIsMzAxLjkgMjgyLjIsMzAxLjBaIE0yMzIuMiwzNDIuMEMyMzQuMSwzNDAuOCAyMzYuMSwzMzcuNyAyMzYuMSwzMzUuMEMyMzYuMSwzMzIuMyAyMzUuMywzMjguNSAyMzIuNSwzMjYuMEMyMjkuNiwzMjMuNSAyMjIuNiwzMjAuNiAyMTkuMCwzMjAuMEMyMTUuNCwzMTkuNSAyMTIuNCwzMjEuMCAyMTEuMCwzMjIuN0MyMDkuNiwzMjQuNCAyMDkuNSwzMjcuNCAyMTAuMywzMzAuMEMyMTEuMSwzMzIuNiAyMTMuNCwzMzUuOSAyMTUuOSwzMzguMEMyMTguMywzNDAuMSAyMjIuMywzNDEuOCAyMjUuMCwzNDIuNUMyMjcuNywzNDMuMSAyMzAuNCwzNDMuMiAyMzIuMiwzNDIuMFogTTE1Ni44LDQ5MC4wQzE2MS4yLDQ4OC43IDE3NS4xLDQ4My40IDE3OC45LDQ4MS4wQzE4Mi44LDQ3OC42IDE4MS4wLDQ3Ni45IDE4MC4wLDQ3NS40QzE3OS4wLDQ3My44IDE3NS41LDQ3Mi4wIDE3My4wLDQ3MS44QzE3MC41LDQ3MS41IDE2OC4yLDQ3MS43IDE2NS4wLDQ3My45QzE2MS44LDQ3Ni4xIDE1NS44LDQ4Mi41IDE1My44LDQ4NS4wQzE1MS44LDQ4Ny41IDE1Mi42LDQ4OC4yIDE1My4xLDQ4OS4wQzE1My42LDQ4OS44IDE1Mi41LDQ5MS4zIDE1Ni44LDQ5MC4wWiBNMjc5LjksNTY2LjBDMjgzLjksNTY1LjQgMjg4LjEsNTYzLjggMjkxLjAsNTU4LjBDMjkzLjksNTUyLjEgMjk3LjQsNTM3LjAgMjk3LjYsNTMxLjBDMjk3LjgsNTI1LjAgMjk2LjgsNTI1LjggMjkyLjQsNTIyLjBDMjg4LjEsNTE4LjIgMjc1LjMsNTExLjMgMjcxLjUsNTA4LjBDMjY3LjcsNTA0LjcgMjY5LjMsNTA1LjMgMjY5LjYsNTAyLjBDMjY5LjksNDk4LjcgMjc0LjIsNDkxLjEgMjczLjMsNDg4LjBDMjcyLjMsNDg0LjkgMjY2LjcsNDgzLjMgMjY0LjAsNDgzLjNDMjYxLjMsNDgzLjMgMjU4LjcsNDg1LjQgMjU3LjAsNDg4LjBDMjU1LjMsNDkwLjYgMjUzLjcsNDg5LjMgMjUzLjUsNDk5LjBDMjUzLjQsNTA4LjcgMjUzLjgsNTM1LjYgMjU2LjEsNTQ2LjBDMjU4LjMsNTU2LjQgMjYzLjAsNTU4LjAgMjY3LjAsNTYxLjRDMjcxLjAsNTY0LjcgMjc1LjksNTY2LjYgMjc5LjksNTY2LjBaIE0yMTUuOSw1MzAuMEMyMTkuNiw1MzAuMSAyMTkuOCw1MjcuOSAyMjEuMCw1MjUuOEMyMjIuMiw1MjMuNiAyMjMuNiw1MjIuOCAyMjMuMyw1MTcuMEMyMjMuMCw1MTEuMiAyMjEuOCw0OTYuMyAyMTkuMyw0OTEuMEMyMTYuNyw0ODUuNyAyMTMuMCw0ODUuOCAyMDguMCw0ODUuMUMyMDMuMCw0ODQuNCAxOTMuMSw0ODQuNCAxODkuMSw0ODcuMEMxODUuMSw0ODkuNiAxODQuMyw0OTYuNSAxODQuMSw1MDEuMEMxODQuMCw1MDUuNSAxODUuNiw1MTAuMCAxODguMSw1MTQuMEMxOTAuNiw1MTguMCAxOTQuNCw1MjIuMiAxOTkuMCw1MjQuOUMyMDMuNiw1MjcuNiAyMTIuMyw1MjkuOSAyMTUuOSw1MzAuMFogTTIxNy42LDU3Mi4wQzIxOS44LDU3MS4zIDIyMi4wLDU2OS40IDIyMy4wLDU2Ny44QzIyNC4wLDU2Ni4xIDIyNC41LDU2NC4wIDIyMy43LDU2Mi4wQzIyMi44LDU2MC4wIDIyMC4xLDU1Ny4wIDIxOC4wLDU1Ni4wQzIxNS45LDU1NS4wIDIxMy4xLDU1NS4wIDIxMS4wLDU1Ni4wQzIwOC45LDU1Ny4wIDIwNi41LDU2MC4wIDIwNS43LDU2Mi4wQzIwNC44LDU2NC4wIDIwNS4zLDU2Ni4zIDIwNi4wLDU2OC4wQzIwNi43LDU2OS42IDIwOC4xLDU3MS4zIDIxMC4wLDU3Mi4wQzIxMS45LDU3Mi43IDIxNS41LDU3Mi43IDIxNy42LDU3Mi4wWiIvPjwvZz4KICA8cGF0aCBkPSJNNzYuMCw3MjYuMiBMNzYuNSw3MjkuMSBMNzcuMSw3MjkuMSBMODUuNyw3MjUuMiBMODUuOSw3MjUuMiBDODYuMyw3MjUuMiA4Ni40LDcyNS44IDg2LjQsNzI3LjQgTDg2LjQsNzU5LjUgQzg2LjQsNzYzLjAgODUuNyw3NjMuNyA4Mi4xLDc2My45IEw3OC40LDc2NC4xIEw3OC40LDc2Ni4xIEM4Mi4wLDc2Ni4wIDg1LjcsNzY1LjkgODkuMyw3NjUuOSBDOTIuOCw3NjUuOSA5Ni4zLDc2Ni4wIDk5LjgsNzY2LjEgTDk5LjgsNzY0LjEgTDk2LjMsNzYzLjkgQzkyLjcsNzYzLjcgOTIuMCw3NjMuMCA5Mi4wLDc1OS41IEw5Mi4wLDcyMC4yIEw5MS4xLDcxOS45IEM4Ni44LDcyMi4xIDgyLjAsNzI0LjEgNzYuMCw3MjYuMiBaIE0xMTMuMCw3MzUuNyBDMTEzLjAsNzQzLjMgMTE4LjAsNzQ4LjkgMTI0LjksNzQ4LjkgQzEyNy4yLDc0OC45IDEyOS44LDc0OC4yIDEzMS4wLDc0Ny4yIEwxMzUuNiw3NDMuMyBDMTM1LjEsNzU0LjUgMTI3LjgsNzYyLjcgMTE1LjgsNzY1LjYgTDExNS44LDc2Ni4xIEwxMTguMSw3NjcuMiBDMTI1LjQsNzY0LjkgMTI4LjYsNzYzLjMgMTMyLjIsNzYwLjMgQzEzOC42LDc1NC44IDE0Mi4wLDc0Ny4xIDE0Mi4wLDczOC4yIEMxNDIuMCw3MjcuMCAxMzYuNyw3MjAuMiAxMjcuOSw3MjAuMiBDMTE5LjQsNzIwLjIgMTEzLjAsNzI2LjggMTEzLjAsNzM1LjcgWiBNMTE4LjcsNzMzLjMgQzExOC43LDcyNi42IDEyMi4yLDcyMi40IDEyNy42LDcyMi40IEMxMzAuNiw3MjIuNCAxMzIuOCw3MjMuNiAxMzQuMyw3MjYuMyBDMTM1LjUsNzI4LjQgMTM2LjMsNzMxLjcgMTM2LjMsNzM0LjcgQzEzNi4zLDc0MC44IDEzMi43LDc0NC45IDEyNy42LDc0NC45IEMxMjIuMyw3NDQuOSAxMTguNyw3NDAuMiAxMTguNyw3MzMuMyBaIE0xNTUuMyw3MjYuMiBMMTU1LjgsNzI5LjEgTDE1Ni40LDcyOS4xIEwxNjUuMCw3MjUuMiBMMTY1LjIsNzI1LjIgQzE2NS42LDcyNS4yIDE2NS43LDcyNS44IDE2NS43LDcyNy40IEwxNjUuNyw3NTkuNSBDMTY1LjcsNzYzLjAgMTY1LjAsNzYzLjcgMTYxLjQsNzYzLjkgTDE1Ny43LDc2NC4xIEwxNTcuNyw3NjYuMSBDMTYxLjMsNzY2LjAgMTY1LjAsNzY1LjkgMTY4LjYsNzY1LjkgQzE3Mi4xLDc2NS45IDE3NS42LDc2Ni4wIDE3OS4xLDc2Ni4xIEwxNzkuMSw3NjQuMSBMMTc1LjYsNzYzLjkgQzE3Mi4wLDc2My43IDE3MS4zLDc2My4wIDE3MS4zLDc1OS41IEwxNzEuMyw3MjAuMiBMMTcwLjQsNzE5LjkgQzE2Ni4xLDcyMi4xIDE2MS4zLDcyNC4xIDE1NS4zLDcyNi4yIFogTTE5My45LDczNC4zIEwxOTUuOSw3MzQuMyBMMTk2LjQsNzMwLjUgQzE5Ni45LDcyNi40IDE5Ny40LDcyNS45IDIwMC40LDcyNS45IEwyMTguMiw3MjUuOSBDMjE1LjUsNzMxLjMgMjEzLjQsNzM1LjIgMjEwLjksNzM5LjIgTDE5NC43LDc2NS4yIEwxOTUuMyw3NjYuMSBDMTk1LjMsNzY2LjEgMTk3LjIsNzY1LjkgMTk4LjQsNzY1LjkgQzE5OS42LDc2NS45IDIwMS40LDc2Ni4xIDIwMS40LDc2Ni4xIEMyMDQuMiw3NTguOSAyMDUuOSw3NTQuNiAyMTEuOSw3NDQuMCBMMjI0LjAsNzIyLjIgTDIyNC4wLDcyMC4yIEMyMTYuOCw3MjAuNSAyMTYuMiw3MjAuNSAyMDkuMSw3MjAuNSBDMjAyLjIsNzIwLjUgMjAxLjAsNzIwLjUgMTk0LjYsNzIwLjIgTDE5My45LDcyMC41IEMxOTMuOSw3MjAuNSAxOTQuMSw3MjQuOCAxOTQuMSw3MjcuNSBDMTk0LjEsNzMwLjEgMTkzLjksNzM0LjMgMTkzLjksNzM0LjMgWiIgZmlsbD0iIzAyMzk3NiIvPgo8L3N2Zz4=">
+</div>
+<nav class="wrap nav" aria-label="Pages"><button data-view="teams" class="on">Team Standings</button><button data-view="leaders">Season Leaders</button><button data-view="recap">Weekly Recap</button><button data-view="score">Digital Scoresheet</button></nav>
+</header>
+
+<main class="wrap" id="viewTeams">
+  <div class="loading" id="teamsLoading">Loading standings…</div>
+  <div id="teamsBody"></div>
+</main>
+<main class="wrap" id="viewLeaders" hidden>
+  <div class="loading" id="leadersLoading">Loading leaderboards…</div>
+  <div id="leadersTop" hidden><input id="find" type="search" placeholder="Find a bowler" aria-label="Find a bowler"></div>
+  <div id="leadersBody"></div>
+</main>
+<main class="wrap" id="viewRecap" hidden>
+  <div class="loading" id="recapLoading">Loading the weekly recap…</div>
+  <div id="recapBody"></div>
+</main>
+<main class="wrap" id="viewScore" hidden>
+  <div class="loading" id="loading">Loading this week's matchups and averages…</div>
+  <div id="app" hidden>
+    <details class="panel" id="matchBox" open>
+      <summary>Match</summary>
+      <div class="fields">
+        <div><label for="team">Your team</label><select id="team"></select></div>
+        <div><label for="week">Week</label><select id="week"></select></div>
+      </div>
+      <div class="matchcard" id="matchcard"></div>
+    </details>
+
+    <div class="modes" id="modes" role="group" aria-label="How to enter scores">
+      <button data-mode="box" class="on">Enter by box</button>
+      <button data-mode="scan">Scan paper sheet</button>
+    </div>
+    <p class="note" style="margin:4px 0 0;text-align:center">Scoresheet v2 · box-by-box entry and photo scanning</p>
+
+    <section class="panel scan" id="scanBox" hidden>
+      <p class="note" style="margin-top:0">Take a photo of the paper score sheet. Shoot it flat and straight on, with all ten boxes and the names in the frame. The app reads the marks and running totals and fills in the boxes. Check them below before you save.</p>
+      <div class="controls" style="margin-top:6px">
+        <label class="filebtn" for="photo">Take or choose photo</label>
+        <input type="file" id="photo" accept="image/*" hidden>
+        <button class="gold" id="readBtn" disabled>Read the sheet</button>
+        <span class="msg" id="scanMsg"></span>
+      </div>
+      <img id="photoPrev" alt="Photo of the score sheet" hidden>
+    </section>
+
+    <section class="panel pick" id="pickBox" hidden aria-live="polite"></section>
+
+    <div class="tabs" id="tabs" style="margin-top:12px"></div>
+
+    <section class="panel" id="scorePanel" style="margin-top:12px">
+      <details id="setupBox" open><summary id="setupTitle">String 1 lineup</summary>
+        <div class="setup">
+          <div>
+            <div class="lineup" id="lineup"></div>
+            <div class="subrow" id="subrow">
+              <select id="subPick" aria-label="Add a sub"></select>
+              <button class="ghost" id="subAdd">Add sub</button>
+              <input id="subName" placeholder="New bowler's full name" aria-label="New bowler name" hidden>
+            </div>
+          </div>
+          <div class="side">
+            <div><label for="lane">Starting lane</label><select id="lane"></select></div>
+            <div class="note" id="setupNote"></div>
+          </div>
+        </div>
+      </details>
+      <div class="vs">
+        <div><div class="who" id="vsUs"></div><div class="v" id="vsUsV"></div></div>
+        <div><label class="who" for="oppAvg" id="vsOpp">Opponent avg</label><input id="oppAvg" type="number" inputmode="decimal" step="0.01" placeholder="Total of 5"></div>
+        <div class="hc"><div class="who" id="vsHcL">Handicap</div><div class="v" id="vsHcV">—</div></div>
+      </div>
+      <div class="board" id="board"></div>
+      <div class="review" id="review" hidden></div>
+      <div class="controls">
+        <button class="gold" id="saveBtn" disabled>Save string 1</button>
+        <button class="ghost danger" id="cancelBtn" hidden>Clear string</button>
+        <button class="ghost" id="reopenBtn" hidden>Reopen string</button>
+        <span class="msg" id="msg"></span>
+      </div>
+      <div class="sendrow" id="sendRow" hidden>
+        <span id="sendMsg"></span>
+        <button class="ghost" id="sendBtn" hidden>Send now</button>
+      </div>
+    </section>
+
+    <section class="cards" id="cards" style="margin-top:12px" aria-label="Bowler scores"></section>
+
+    <section class="padwrap" id="pad" hidden>
+      <div class="padteam" id="padTeam"></div>
+      <div class="now" id="now"></div>
+      <div class="keys" id="keys"></div>
+    </section>
+
+    <section class="panel" id="results" hidden style="margin-top:12px">
+      <details open><summary>Your match</summary>
+        <p class="note" id="resNote"></p>
+        <div class="scroll"><table class="res" id="resTable"></table></div>
+        <div class="controls">
+          <button class="ghost" id="submitBtn">Send again</button>
+          <span class="msg" id="submitMsg"></span>
+        </div>
+        <div class="controls">
+          <button class="ghost" id="dlBtn">Download CSV</button>
+          <button class="ghost" id="copyBtn">Copy CSV</button>
+          <span class="msg" id="dlMsg"></span>
+        </div>
+        <textarea id="csvText" readonly hidden aria-label="CSV text"></textarea>
+      </details>
+    </section>
+
+  </div>
+</main>
+<footer class="foot"><div class="wrap">
+  <img alt="The Weston Golf Club" src="data:image/png;base64,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">
+  <p>The World’s Premier Private Candlepin Club</p>
+</div></footer>
+
+<script>
+/* The league data lives in the master Google Sheet. This page asks the Sheet's script for it in the background,
+   so nobody ever opens a script.google.com page (which is what caused "unable to open the file").
+   If the script is ever redeployed with a NEW link, paste it here. */
+const API_URL='https://script.google.com/macros/s/AKfycbx5j5bUQ31TgSEty4lZC3I7E-gkNwc9rKzTajD0Vf8zT9RDz4E9hiw1C4GPllZWs3zP/exec';
+window.google={script:{run:(function(){
+  const call=(fn,arg,ok,fail)=>fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({fn,arg}),redirect:'follow'})
+    .then(r=>r.json()).then(d=>{if(d.ok){ok&&ok(d.result)}else{fail&&fail(new Error(d.error||'Something went wrong.'))}})
+    .catch(()=>fail&&fail(new Error('Couldn\u2019t reach the league server. Check your connection and try again')));
+  const mk=(ok,fail)=>new Proxy({},{get:(_,k)=>k==='withSuccessHandler'?f=>mk(f,fail):k==='withFailureHandler'?f=>mk(ok,f):arg=>call(k,arg,ok,fail)});
+  return mk(null,null)})()}};
+</script>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const KEY='wgcScorer.v2',ABS='__ABSENT__',GHOST_AVG=75,ABSENT_PENALTY=7;
+let L=null; // league data from the master file
+let P={team:'',week:0,mode:'box',matches:{}};try{P=Object.assign(P,JSON.parse(localStorage.getItem(KEY))||{})}catch(e){}
+const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(P))}catch(e){}};
+// One entry per box: {m:'X'|'/'|'', t:pins in the box, b1:first ball, b12:pins after two balls, e1:first bonus ball, ex:bonus pins in box 10}.
+// Only the extras a bonus depends on are ever asked for, so an open box is one tap.
+const emptyBoxes=()=>Array.from({length:5},()=>Array(10).fill(null));
+const newString=lineup=>({lane:'',oppAvg:'',lineup:lineup||Array.from({length:5},()=>({name:'',avg:''})),boxes:emptyBoxes(),flags:{},saved:false,src:''});
+let M=null;          // current match state
+let editing=null,snaps=[]; // editing: {p,f} of a box being re-entered; snaps: undo history for the current string
+
+/* ---------- league data ---------- */
+function load(){
+  if(typeof google==='undefined'||!google.script){$('loading').textContent='Open this page from its web app link to load the league data.';return}
+  google.script.run.withSuccessHandler(t=>{L=JSON.parse(t);setup()}).withFailureHandler(e=>{$('loading').textContent='Couldn’t load the league data: '+(e&&e.message||e)}).getLeagueData();
+}
+const fmt=n=>Number.isInteger(n)?String(n):(Math.round(n*100)/100).toFixed(2).replace(/\.?0+$/,'');
+function matchFor(team,week){return L.schedule.find(r=>r.week===week&&(r.home===team||r.away===team))}
+function avgFor(name,week){const a=L.averages[name];if(a){const v=a[week-1]??a[8];if(v!=null)return v}
+  for(const t in L.teams){const b=L.teams[t].bowlers.find(x=>x.name===name);if(b)return b.start}return GHOST_AVG}
+function roster(){const t=L.teams[P.team];return(t?t.bowlers.map(b=>({name:b.name,avg:avgFor(b.name,P.week)})):[]).concat(M?M.subs:[])}
+function defaultWeek(){const weeks=[...new Set(L.schedule.map(r=>r.week))].sort((a,b)=>a-b);
+  const team=L.teams[P.team];const night=team?team.night:null;
+  const up=L.schedule.filter(r=>(!night||r.night===night)&&r.date>=L.today).sort((a,b)=>a.date.localeCompare(b.date))[0];
+  return up?up.week:weeks[weeks.length-1]}
+const mkey=()=>P.team+'|'+P.week;
+function openMatch(){
+  if(!P.matches[mkey()]){
+    P.matches[mkey()]={strings:[newString(),newString(),newString()],cur:0,view:0,done:false,subs:[],photos:[],submitted:''}}
+  M=P.matches[mkey()];M.photos=M.photos||[];M.sending=false;editing=null;snaps=[];
+  // Averages always come from the master file: refresh any string that hasn't been scored yet.
+  const list=roster();M.strings.forEach(s=>{if(s.saved||hasBoxes(s))return;s.lineup.forEach(b=>{if(!b.name||b.name===ABS)return;const r=list.find(x=>x.name===b.name);if(r){b.avg=String(r.avg);b.orig=r.avg}})})}
+
+function setup(){
+  $('loading').hidden=true;$('app').hidden=false;
+  const nights=['Wednesday','Thursday'];
+  $('team').innerHTML='<option value="">— choose your team —</option>'+nights.map(n=>`<optgroup label="${n}">${Object.keys(L.teams).filter(t=>L.teams[t].night===n).sort().map(t=>`<option value="${esc(t)}">Team ${esc(t)}</option>`).join('')}</optgroup>`).join('');
+  if(!L.teams[P.team])P.team='';
+  $('team').value=P.team;
+  $('team').onchange=e=>{P.team=e.target.value;P.week=defaultWeek();persist();afterPick()};
+  $('week').onchange=e=>{P.week=Number(e.target.value);persist();afterPick()};
+  setMode(P.mode||'box');
+  afterPick();
+}
+function afterPick(){
+  if(typeof clearPhoto==='function'&&$('photoPrev'))clearPhoto();
+  const night=L.teams[P.team]?L.teams[P.team].night:null;
+  const weeks=L.schedule.filter(r=>!night||r.night===night).reduce((a,r)=>{if(!a.some(x=>x.week===r.week))a.push(r);return a},[]).sort((a,b)=>a.week-b.week);
+  if(!P.week||!weeks.some(w=>w.week===P.week))P.week=P.team?defaultWeek():weeks.length?weeks[0].week:1;
+  $('week').innerHTML=weeks.map(w=>`<option value="${w.week}">Week ${w.week} · ${niceDate(w.date)}</option>`).join('');
+  $('week').value=P.week;
+  const scorePanel=$('scorePanel');
+  if(!P.team){M=null;$('matchcard').innerHTML='Choose your team to load your roster and this week’s matchup.';
+    ['tabs','cards'].forEach(i=>$(i).innerHTML='');scorePanel.hidden=true;$('pad').hidden=true;$('results').hidden=true;$('modes').hidden=true;$('scanBox').hidden=true;$('pickBox').hidden=true;$('sendRow').hidden=true;renderHeader();return}
+  scorePanel.hidden=false;$('modes').hidden=false;setMode(P.mode);
+  openMatch();
+  const m=matchFor(P.team,P.week);
+  $('matchcard').innerHTML=m?`<b>${esc(P.team)} vs ${esc(opp())}</b><br>Lanes ${esc(m.lanes)} · ${esc(m.night)} ${niceDate(m.date)}`:'<span class="warn">No match on the schedule for this team and week.</span>';
+  $('matchBox').open=!hasAny();$('setupBox').open=!hasBoxes(cur());
+  persist();renderAll();checkServerCopy();
+}
+function niceDate(d){const [y,m,dd]=d.split('-').map(Number);if(!y)return d;return new Date(y,m-1,dd).toLocaleDateString(undefined,{month:'short',day:'numeric'})}
+const opp=()=>{const m=matchFor(P.team,P.week);return m?(m.home===P.team?m.away:m.home):''};
+const lanesPair=()=>{const m=matchFor(P.team,P.week);return m?m.lanes:''};
+
+/* ---------- scoring rules ---------- */
+const cur=()=>M.strings[M.cur],viewed=()=>M.strings[M.view];
+const isAbsent=b=>b.name===ABS;
+const active=s=>s.lineup.map((b,i)=>b.name&&!isAbsent(b)?i:-1).filter(i=>i>=0);
+// Extras a box needs so the box before it can be scored:
+//  b1  first ball, after a spare (or after two strikes in a row)
+//  b12 pins after two balls, after a strike when this box is open
+//  e1/ex bonus balls when box 10 is a strike or spare
+function needs(bx,f){const b=bx[f];if(!b)return[];const pv=f>0?bx[f-1]:null,pp=f>1?bx[f-2]:null;
+  const pX=!!pv&&pv.m==='X',pS=!!pv&&pv.m==='/',ppX=!!pp&&pp.m==='X',o=[];
+  if(b.m!=='X'&&(pS||(pX&&ppX)))o.push('b1');
+  if(pX&&!b.m)o.push('b12');
+  if(f===9&&b.m==='X'&&pX)o.push('e1');
+  if(f===9&&b.m)o.push('ex');
+  return o}
+const missing=(bx,f)=>needs(bx,f).filter(k=>bx[f][k]==null);
+const firstBall=b=>b.m==='X'?10:b.b1;
+function boxVal(bx,f){const b=bx[f];if(!b||missing(bx,f).length)return null;
+  if(f===9)return b.m?{v:10+b.ex,fill:b.ex,k:b.m}:{v:b.t,fill:0,k:''};
+  const g=bx[f+1];
+  if(b.m==='X'){if(!g||missing(bx,f+1).length)return null;let bonus;
+    if(g.m==='X'){if(f+1===9)bonus=10+g.e1;else{const h=bx[f+2];if(!h||missing(bx,f+2).length)return null;bonus=10+firstBall(h)}}
+    else if(g.m==='/')bonus=10;else bonus=g.b12;
+    return{v:10+bonus,fill:bonus,k:'X'}}
+  if(b.m==='/'){if(!g||missing(bx,f+1).length)return null;const n=firstBall(g);return{v:10+n,fill:n,k:'/'}}
+  return{v:b.t,fill:0,k:''}}
+function bstat(bx){let total=0,run=[],sp=0,sf=0,st=0,stf=0;
+  for(let f=0;f<10;f++){const x=boxVal(bx,f);if(!x)break;total+=x.v;run[f]=total;
+    if(x.k==='X'){st++;stf+=x.fill}else if(x.k==='/'){sp++;sf+=x.fill}}
+  return{total,run,sp,sf,st,stf,n:run.length}}
+// Entry order follows the lanes: each bowler rolls a two-box block (1-2, 3-4 ... 9-10), then the next bowler.
+function order(s){const a=active(s),o=[];for(let k=0;k<5;k++)a.forEach(p=>o.push([p,2*k],[p,2*k+1]));return o}
+function task(s){if(editing)return{p:editing.p,f:editing.f,k:'main',fix:true};
+  const o=order(s);
+  for(const[p,f]of o){const bx=s.boxes[p];if(!bx[f])return{p,f,k:'main'};
+    const m=missing(bx,f);if(m.length){let k=m[0];if(k==='ex'&&bx[f].m==='X')k=bx[f].e1==null?'e1':'e2';return{p,f,k}}}
+  return null}
+function lineupIssue(s){if(s.lineup.some(b=>!b.name))return'Fill all five spots, using Absent for a missing bowler.';
+  const n=s.lineup.filter(b=>!isAbsent(b)).map(b=>b.name);if(!n.length)return'At least one bowler has to be present.';
+  if(new Set(n).size<n.length)return'Each bowler can appear only once.';return''}
+const complete=s=>!lineupIssue(s)&&!task(s);
+const absentCount=s=>s.lineup.filter(isAbsent).length+s.lineup.filter(b=>!b.name).length;
+function avgSum(s){return s.lineup.reduce((t,b)=>t+(isAbsent(b)||!b.name?GHOST_AVG:(Number(b.avg)||0)),0)}
+function handicap(s){const ours=avgSum(s),o=s.oppAvg===''?null:Number(s.oppAvg);if(o==null||isNaN(o))return{ours:0,opp:0,known:false,ourSum:ours};
+  return{ours:ours<o?Math.round((o-ours)*.85):0,opp:o<ours?Math.round((ours-o)*.85):0,known:true,ourSum:ours,oppSum:o}}
+const scratch=s=>s.boxes.reduce((t,bx,i)=>t+(isAbsent(s.lineup[i])||!s.lineup[i].name?0:bstat(bx).total),0);
+// Team string score per the league sheet: pins + 75 per absent bowler + handicap − 7 per absent bowler.
+function teamScore(s){const a=absentCount(s),h=handicap(s);return scratch(s)+a*(GHOST_AVG-ABSENT_PENALTY)+h.ours}
+function proj(b,q){const a=Number(b.avg);if(!q.n)return{p:null,pm:null};return{p:Math.round(q.total/q.n*10),pm:b.avg===''?null:q.total-a*q.n/10}}
+const pmFmt=v=>v==null?'—':(v>0?'+':v<0?'−':'±')+fmt(Math.round(Math.abs(v)*10)/10);
+function teamProj(s){let p=0,pm=0;s.lineup.forEach((b,i)=>{if(isAbsent(b)||!b.name)return;const x=proj(b,bstat(s.boxes[i]));p+=x.p==null?(Number(b.avg)||0):x.p;pm+=x.pm||0});
+  const a=absentCount(s);return{p:Math.round(p)+a*(GHOST_AVG-ABSENT_PENALTY)+handicap(s).ours,pm}}
+const hasBoxes=s=>s.boxes.some(p=>p.some(Boolean));
+const hasAny=()=>M&&M.strings.some(hasBoxes);
+
+/* ---------- entry mode ---------- */
+function setMode(m){P.mode=m==='scan'?'scan':'box';persist();
+  document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('on',b.dataset.mode===P.mode));
+  $('scanBox').hidden=P.mode!=='scan'||!M||!!cur().saved;if(M)renderScore()}
+document.querySelectorAll('#modes button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+
+/* ---------- lineup ---------- */
+const locked=s=>s.saved||M.strings.indexOf(s)!==M.cur;
+function renderLineup(){const s=viewed(),lk=locked(s),names=roster();
+  $('setupTitle').textContent=`String ${M.view+1} lineup`;
+  $('lineup').innerHTML=s.lineup.map((b,i)=>{
+    const inList=names.some(r=>r.name===b.name);
+    const opts=`<option value="">— choose bowler —</option>`+(b.name&&!inList&&!isAbsent(b)?`<option selected value="${esc(b.name)}">${esc(b.name)}</option>`:'')+
+      names.map(r=>`<option value="${esc(r.name)}" ${r.name===b.name?'selected':''}>${esc(r.name)} (${fmt(Number(r.avg))})</option>`).join('')+
+      `<option value="${ABS}" ${isAbsent(b)?'selected':''}>Absent (75 avg, −7 pins)</option>`;
+    return`<div class="lrow"><div class="pos">${i+1}</div><select id="lb${i}" aria-label="Position ${i+1}" ${lk?'disabled':''}>${opts}</select><div class="avg" aria-label="Position ${i+1} average">${isAbsent(b)?'75':b.avg===''?'—':fmt(Number(b.avg))}</div></div>`}).join('');
+  s.lineup.forEach((b,i)=>{
+    $('lb'+i).onchange=e=>{const v=e.target.value;b.name=v;if(v===ABS){b.avg='75';b.orig=null}else{const r=names.find(x=>x.name===v);b.avg=r?String(r.avg):'';b.orig=r?r.avg:null}persist();renderLineup();renderScore()}});
+  // Sub picker: bowlers from the other teams at their master-file average, or a new bowler at the 75 rookie average.
+  const mine=new Set(names.map(r=>r.name));
+  $('subPick').innerHTML='<option value="">Add a sub from another team…</option>'+Object.keys(L.teams).sort().map(t=>t===P.team?'':`<optgroup label="Team ${esc(t)}">${L.teams[t].bowlers.filter(x=>!mine.has(x.name)).map(x=>`<option value="${esc(x.name)}">${esc(x.name)} (${fmt(avgFor(x.name,P.week))})</option>`).join('')}</optgroup>`).join('')+'<option value="__NEW__">New bowler, not in the league yet (75 avg)</option>';
+  $('subPick').onchange=e=>{$('subName').hidden=e.target.value!=='__NEW__'};$('subName').hidden=true;
+  $('subrow').hidden=lk;
+  const pair=lanesPair().split('&').map(x=>x.trim()).filter(Boolean);
+  $('lane').innerHTML='<option value="">— choose —</option>'+pair.map(l=>`<option value="${l}">Lane ${l}</option>`).join('');
+  $('lane').value=s.lane;$('lane').disabled=lk;
+  $('oppAvg').value=s.oppAvg;$('oppAvg').disabled=lk;
+  const dup=s.lineup.map(b=>b.name).filter((n,i,a)=>n&&n!==ABS&&a.indexOf(n)!==i);
+  $('setupNote').innerHTML=dup.length?`<span class="warn">${esc(dup[0])} is in the lineup twice.</span>`:
+    s.saved?'This string is saved.':
+`Averages are each bowler’s Week ${P.week} average from the master file and can’t be changed here.`}
+$('lane').onchange=e=>{cur().lane=e.target.value;persist();renderScore()};
+$('oppAvg').oninput=e=>{cur().oppAvg=e.target.value;persist();renderScore()};
+$('subAdd').onclick=()=>{const v=$('subPick').value;let n=v,a;
+  if(!v)return say('Choose the sub from the list first.');
+  if(v==='__NEW__'){n=$('subName').value.trim();if(!n)return say('Type the new bowler’s full name.');a=GHOST_AVG}else a=avgFor(v,P.week);
+  if(!M.subs.some(x=>x.name===n)&&!roster().some(x=>x.name===n))M.subs.push({name:n,avg:a,isNew:v==='__NEW__'});
+  $('subName').value='';$('subPick').value='';persist();renderLineup();say(`${n} added at ${fmt(a)}. Pick him in a lineup spot.`)};
+
+/* ---------- tabs, board, controls ---------- */
+function renderTabs(){$('tabs').innerHTML=M.strings.map((s,i)=>{const st=s.saved?`${i<(M.sent||0)?'Sent':'Saved'} · ${teamScore(s)}${s.lane?' · L'+s.lane:''}`:i===M.cur?(complete(s)?'Ready to save':hasBoxes(s)?'In progress':'Up next'):hasBoxes(s)?'Scanned · waiting':'Not started';
+  return`<button class="tab ${i===M.view?'on':''} ${s.saved?'saved':''}" data-v="${i}" ${i>M.cur?'disabled':''}><b>String ${i+1}</b><span>${st}</span></button>`}).join('');
+  $('tabs').querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{M.view=+b.dataset.v;editing=null;persist();renderAll()})}
+function renderHeader(){$('matchline').textContent=P.team?`${P.team} vs ${opp()||'—'} · Week ${P.week}`:''}
+function renderScore(){if(!M)return;const s=viewed(),h=handicap(s),t=P.team,o=opp()||'Opponent',a=absentCount(s),tp=teamProj(s);
+  const picked=s.lineup.filter(b=>b.name).length;
+  $('vsUs').textContent=`${t} avg${picked<5?` (${picked} of 5)`:''}`;$('vsUsV').textContent=fmt(h.ourSum);
+  $('vsOpp').textContent=`${o} avg (total of 5)`;
+  $('vsHcL').textContent='Handicap'+(h.ours?' · '+t:h.opp?' · '+o:'');$('vsHcV').textContent=!h.known?'—':h.ours?'+'+h.ours:h.opp?'+'+h.opp:'None';
+  const triple=M.strings.reduce((x,y)=>x+(y.saved||y===cur()?teamScore(y):0),0);
+  $('board').innerHTML=`<div class="stat"><label>Pins</label><div class="v">${scratch(s)}</div></div>`+
+    (a?`<div class="stat"><label>Absent ×${a}</label><div class="v">+${a*(GHOST_AVG-ABSENT_PENALTY)}</div></div>`:'')+
+    `<div class="stat"><label>Handicap</label><div class="v">${h.ours?'+'+h.ours:0}</div></div><div class="stat total"><label>String ${M.view+1} total</label><div class="v">${teamScore(s)}</div></div>`+
+    `<div class="stat"><label>Projected</label><div class="v">${tp.p}</div></div><div class="stat"><label>+/− avg</label><div class="v pm ${tp.pm<0?'neg':tp.pm>0?'pos':''}">${pmFmt(tp.pm)}</div></div>`+
+    `<div class="stat"><label>Triple so far</label><div class="v">${triple}</div></div>`;
+  const isCur=M.view===M.cur,c=cur();
+  $('scanBox').hidden=P.mode!=='scan'||c.saved||M.done;
+  $('cancelBtn').hidden=!isCur||c.saved||!hasBoxes(c);
+  $('saveBtn').hidden=!isCur||c.saved;$('saveBtn').disabled=!complete(c)||!!editing;$('saveBtn').textContent=`Save & send string ${M.cur+1}`;
+  const last=M.strings.map(x=>x.saved).lastIndexOf(true);
+  $('reopenBtn').hidden=!(M.view===last&&(M.done||!hasBoxes(cur())));$('reopenBtn').textContent=`Reopen string ${M.view+1} to fix a score`;
+  renderReview();renderHeader();renderCards();renderPad();renderTabs()}
+function renderReview(){const s=viewed(),n=s.notes||[];const flagged=Object.keys(s.flags||{}).reduce((t,p)=>t+(s.flags[p]||[]).length,0);
+  $('review').hidden=s.saved||(!n.length&&!flagged);if($('review').hidden)return;
+  $('review').innerHTML=`<b>Read from the photo. Check before saving.</b>${flagged?` Boxes with a dashed outline need a look; tap one to re-enter it.`:''}${n.length?`<ul>${n.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}`}
+
+/* ---------- bowler cards and keypad ---------- */
+function markTxt(b,f){if(!b)return'';if(b.m==='X')return f===9&&b.ex!=null?`X +${b.ex}`:'X';if(b.m==='/')return f===9&&b.ex!=null?`/ +${b.ex}`:'/';return b.t===0?'–':String(b.t)}
+let lastP=-1;
+const canFix=()=>M.view===M.cur&&!cur().saved;
+function renderCards(){const s=viewed(),fixable=canFix(),tk=fixable&&!lineupIssue(s)?task(s):null;
+  $('cards').innerHTML=s.lineup.map((b,p)=>{
+    if(isAbsent(b))return`<article class="card absent"><div class="ch"><span class="cpos">${p+1}</span><b>Absent</b><span class="note">75 avg · −7 pins</span></div></article>`;
+    const bx=s.boxes[p],q=bstat(bx),x=proj(b,q),me=tk&&tk.p===p,fl=new Set((s.flags||{})[p]||[]);
+    const fr=bx.map((z,f)=>{const here=me&&tk.f===f,need=z&&missing(bx,f).length,tap=fixable&&z;
+      return`<div class="f ${here?'blk':''} ${need?'need':''} ${fl.has(f)?'flag':''} ${tap?'tap':''}" ${tap?`data-p="${p}" data-f="${f}" role="button" aria-label="Change box ${f+1}"`:''}><div class="fn">${f+1}</div><div class="fm">${markTxt(z,f)}</div><div class="ft">${q.run[f]??''}</div></div>`}).join('');
+    return`<article class="card ${me?'on':''}" id="card${p}"><div class="ch"><span class="cpos">${p+1}</span><b>${esc(b.name)||'—'}</b><span class="note">Avg ${b.avg===''?'—':fmt(Number(b.avg))}</span></div>
+      <div class="cstats"><div><label>Total</label><span>${q.total}</span></div><div><label>Projected</label><span>${x.p??'—'}</span></div><div><label>+/− avg</label><span class="pm ${x.pm<0?'neg':x.pm>0?'pos':''}">${pmFmt(x.pm)}</span></div><div><label>X / Sp</label><span>${q.st} / ${q.sp}</span></div></div>
+      <div class="frames">${fr}</div></article>`}).join('');
+  const np=tk?tk.p:-1;if(np>=0&&np!==lastP){const el=$('card'+np);if(el)el.scrollIntoView({block:'nearest',behavior:'smooth'})}
+  lastP=np}
+$('cards').onclick=e=>{const t=e.target.closest?e.target.closest('[data-f]'):null;if(!t||!canFix())return;
+  editing={p:+t.dataset.p,f:+t.dataset.f};say('');renderScore()};
+const WHY={b1:'pins on ball 1',b12:'pins after 2 balls',e1:'bonus ball 1',e2:'bonus ball 2',ex:'bonus ball'};
+function extraRange(b,k){const ten=!b.m&&b.t===10;
+  if(k==='b1'){let mx=b.m==='/'||ten?9:b.t;if(b.b12!=null)mx=Math.min(mx,b.b12);return[0,mx]}
+  if(k==='b12')return[b.b1??0,ten?9:b.t];
+  if(k==='e1')return[0,b.m==='X'&&b.ex!=null?Math.min(10,b.ex):10];
+  if(k==='e2')return[0,b.e1===10?10:10-b.e1];
+  return[0,10]}
+function renderPad(){const s=cur(),show=canFix()&&!lineupIssue(s)&&!M.pending;$('pad').hidden=!show;if(!show){wake(false);return}
+  const tp=teamProj(s),tk=task(s);wake(!!tk);
+  $('padTeam').innerHTML=`<span>${esc(P.team)} <b>${teamScore(s)}</b></span><span>Proj <b>${tp.p}</b></span><span>+/− <b class="pm ${tp.pm<0?'neg':tp.pm>0?'pos':''}">${pmFmt(tp.pm)}</b></span>`;
+  let k='';const undoBtn=`<button class="undo" data-u="1" ${snaps.length?'':'disabled'}>Undo</button>`;
+  if(!tk){$('now').innerHTML=`<b>String ${M.cur+1} complete</b><span>Tap any box to fix it, or save the string.</span>`;k=undoBtn}
+  else{const b=s.lineup[tk.p];
+    if(tk.k==='main'){const blk=Math.floor(tk.f/2)*2+1;
+      $('now').innerHTML=`<b>${tk.fix?'Fixing ':''}${esc(b.name)} · Box ${tk.f+1}</b><span>${tk.fix?'Enter the box again':`Boxes ${blk}–${blk+1}`} · pins in the box (10 = ten-box), Spare or Strike</span>`;
+      for(let i=0;i<=10;i++)k+=`<button data-k="${i}">${i}</button>`;
+      k+=`<button class="mark word" data-m="/">Spare</button><button class="mark word" data-m="X">Strike</button>`;
+      k+=tk.fix?`<button class="undo" data-c="1">Cancel</button>`:undoBtn}
+    else{const bx=s.boxes[tk.p],z=bx[tk.f],[lo,hi]=extraRange(z,tk.k),pv=tk.f>0?bx[tk.f-1]:null;
+      const why=tk.k==='b1'||tk.k==='b12'?` for the ${pv&&pv.m==='/'?'spare':'strike'} in box ${tk.f}`:tk.f===9&&z.m==='X'?' after the strike':' after the spare';
+      $('now').innerHTML=`<b>${esc(b.name)} · Box ${tk.f+1}: ${WHY[tk.k]}?</b><span>Needed${why}</span>`;
+      for(let i=lo;i<=hi;i++)k+=`<button data-x="${i}">${i}</button>`;k+=undoBtn}}
+  $('keys').innerHTML=k;
+  $('keys').querySelectorAll('[data-k]').forEach(x=>x.onclick=()=>enterMain(tk,{m:'',t:+x.dataset.k}));
+  $('keys').querySelectorAll('[data-m]').forEach(x=>x.onclick=()=>enterMain(tk,{m:x.dataset.m,t:10}));
+  $('keys').querySelectorAll('[data-x]').forEach(x=>x.onclick=()=>enterExtra(tk,+x.dataset.x));
+  const u=$('keys').querySelector('[data-u]');if(u)u.onclick=undo;
+  const c=$('keys').querySelector('[data-c]');if(c)c.onclick=()=>{editing=null;renderScore()}}
+const snap=s=>{snaps.push(JSON.stringify({boxes:s.boxes,flags:s.flags}));if(snaps.length>60)snaps.shift()};
+function unflag(s,p,f){if(s.flags&&s.flags[p])s.flags[p]=s.flags[p].filter(x=>x!==f)}
+function enterMain(tk,v){const s=cur();snap(s);s.boxes[tk.p][tk.f]={m:v.m,t:v.t,b1:null,b12:null,e1:null,ex:null};unflag(s,tk.p,tk.f);editing=null;after(s)}
+function enterExtra(tk,n){const s=cur(),z=s.boxes[tk.p][tk.f];snap(s);
+  if(tk.k==='e2')z.ex=z.e1+n;else z[tk.k]=n;unflag(s,tk.p,tk.f);after(s)}
+function after(s){say(complete(s)?`String ${M.cur+1} complete. Check it, then save.`:'');persist();renderScore()}
+function undo(){const s=cur(),h=snaps.pop();if(!h)return;const o=JSON.parse(h);s.boxes=o.boxes;s.flags=o.flags||{};editing=null;say('');persist();renderScore()}
+function say(t){$('msg').textContent=t}
+let wl=null;async function wake(on){try{if(on&&!wl&&navigator.wakeLock){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>{wl=null})}else if(!on&&wl){await wl.release();wl=null}}catch(e){wl=null}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&M&&!$('pad').hidden)wake(true)});
+
+// Clear string: two taps, then empty every box in the current string. Lineup, lane and opponent average stay.
+let cancelArmed=null;
+$('cancelBtn').onclick=()=>{const b=$('cancelBtn');
+  if(!cancelArmed){b.classList.add('armed');b.textContent='Tap again to clear this string';
+    cancelArmed=setTimeout(()=>{cancelArmed=null;b.classList.remove('armed');b.textContent='Clear string'},5000);return}
+  clearTimeout(cancelArmed);cancelArmed=null;b.classList.remove('armed');b.textContent='Clear string';
+  const s=cur();s.boxes=emptyBoxes();s.flags={};s.notes=[];s.src='';editing=null;snaps=[];
+  $('setupBox').open=true;say(`String ${M.cur+1} cleared.`);persist();renderAll();
+  window.scrollTo({top:0,behavior:'smooth'})};
+$('saveBtn').onclick=()=>{const s=cur();if(!complete(s)||editing)return;s.saved=true;s.flags={};s.notes=[];snaps=[];$('setupBox').open=true;
+  if(M.cur<2){const n=M.strings[M.cur+1];if(!hasBoxes(n))n.lineup=s.lineup.map(b=>({...b}));if(n.oppAvg==='')n.oppAvg=s.oppAvg;
+    M.cur++;M.view=M.cur;say(`String ${M.cur} saved. ${hasBoxes(n)?`String ${M.cur+1} was read from the photo; check it below.`:`Check the string ${M.cur+1} lineup and lane.`}`);persist();renderAll()}
+  else{M.done=true;say('String 3 saved.');persist();renderAll();$('results').scrollIntoView({behavior:'smooth',block:'start'})}
+  sendMatch()};
+$('reopenBtn').onclick=()=>{const i=M.view;if(M.cur!==i&&hasBoxes(cur())&&!cur().saved)return;M.strings[i].saved=false;M.cur=i;M.done=false;snaps=[];M.sent=Math.min(M.sent||0,i);say(`String ${i+1} reopened. Tap the box you need to change.`);persist();renderAll()};
+
+/* ---------- scan a paper score sheet ---------- */
+let photo=null;
+const scanMsg=t=>{$('scanMsg').textContent=t};
+// Clear the chosen photo so it never carries over to the next read, team or week.
+function clearPhoto(msg){photo=null;$('photoPrev').hidden=true;$('photoPrev').removeAttribute('src');$('readBtn').disabled=true;scanMsg(msg||'')}
+// Shrink the photo on the phone before sending: long side 2000px, JPEG.
+function shrink(file){return new Promise((res,rej)=>{const img=new Image(),u=URL.createObjectURL(file);
+  img.onload=()=>{const k=Math.min(1,2000/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL('image/jpeg',.85).split(',')[1])};
+  img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('That file isn’t a photo this phone can open.'))};img.src=u})}
+$('photo').onchange=async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;scanMsg('Preparing the photo…');$('readBtn').disabled=true;
+  try{photo=await shrink(f);$('photoPrev').src='data:image/jpeg;base64,'+photo;$('photoPrev').hidden=false;$('readBtn').disabled=false;scanMsg('Looks good? Tap Read the sheet.')}
+  catch(err){photo=null;scanMsg(err.message)}e.target.value=''};
+$('readBtn').onclick=()=>{if(!photo)return;$('readBtn').disabled=true;scanMsg('Reading the sheet. This takes 10–30 seconds…');
+  const names=[...new Set(Object.values(L.teams).flatMap(t=>t.bowlers.map(b=>b.name)).concat(M.subs.map(x=>x.name)))];
+  google.script.run.withSuccessHandler(t=>{const r=JSON.parse(t);const ok=(r.strings||[]).some(g=>g&&(g.bowlers||[]).length);if(ok)clearPhoto();else $('readBtn').disabled=false;applyScan(r)})
+    .withFailureHandler(e=>{$('readBtn').disabled=false;scanMsg('Couldn’t read it: '+(e&&e.message||e))})
+    .readScoresheet(JSON.stringify({image:photo,team:P.team,opponent:opp(),week:P.week,string:M.cur+1,roster:roster().map(r=>r.name),names}))};
+const norm=s=>String(s||'').toLowerCase().replace(/[^a-z ]/g,' ').replace(/\s+/g,' ').trim();
+// Match what's written on the sheet (full name, last name, or initials like "PM" or "CJ") to a bowler.
+// The small average written over each column breaks ties between bowlers with the same initials.
+function matchName(raw,avg,pool0){const r=norm(raw);if(!r)return null;
+  const mine=(pool0||roster()).map(x=>({name:x.name,avg:x.avg,mine:true}));
+  const all=mine.concat(Object.keys(L.teams).flatMap(t=>t===P.team?[]:L.teams[t].bowlers.map(b=>({name:b.name,avg:avgFor(b.name,P.week)}))));
+  const parts=n=>norm(n).split(' '),last=n=>parts(n).slice(-1)[0],ini=n=>parts(n)[0][0]+last(n)[0];
+  const rp=r.split(' '),rl=rp.slice(-1)[0],ri=rp.length>1?rp[0][0]:'',R=r.replace(/ /g,'');
+  const tries=[x=>norm(x.name)===r,x=>rp.length>1&&last(x.name)===rl&&parts(x.name)[0][0]===ri,
+    x=>R.length<=3&&(ini(x.name)===R||parts(x.name)[0]===R),x=>rp.length===1&&R.length>3&&last(x.name)===rl,
+    x=>rp.length===1&&R.length>2&&parts(x.name)[0]===rl,x=>rp.length===1&&R.length>2&&parts(x.name)[0].startsWith(rl)];
+  const near=h=>Number.isFinite(avg)?h.filter(x=>Math.abs(Number(x.avg)-avg)<=1.5):[];
+  for(const pool of [mine,all])for(const t of tries){const hit=pool.filter(t);if(hit.length===1)return hit[0];
+    if(hit.length>1){const n=near(hit);if(n.length===1)return n[0]}}
+  return null}
+// "/" = spare (a shaded corner or slash), "X" = an X in the box.
+const MK=v=>{v=String(v??'').trim().toUpperCase();return v==='X'?'X':v==='/'||v==='SPARE'?'/':v==='S'||v==='STRIKE'?'S':''};
+const maxB1=g=>g.m==='/'||(!g.m&&g.t===10)?9:g.t;
+const B=(m,t)=>({m,t,b1:null,b12:null,e1:null,ex:null});
+// Turn what was read off the sheet into boxes. The pins written in each box are trusted over the running
+// total (paper arithmetic slips are common); any box where the two disagree is flagged for the captain.
+// On WGC sheets an X adds exactly 10 (a ten-box, all ten in three balls); an X that adds more is scored as a strike.
+function convertSheet(row){const src=(row.boxes||[]).slice(0,10).map(x=>Object.assign({},x)),bx=Array(10).fill(null),flags=new Set(),notes=[];
+  // On a strike or spare the scorer writes the bonus next to the shading. In box 1 that number sits where the
+  // running total would go (box 1's total is never written), so a small number there is the bonus, not a total.
+  let misfit=0;
+  src.forEach((x,f)=>{if(!x||!MK(x.mark)||MK(x.mark)==='X'||!Number.isFinite(x.run))return;const prev=f?src.slice(0,f).reverse().find(y=>y&&Number.isFinite(y.run)):null;
+    if(x.run<=10||(prev&&x.run-prev.run<10)){if(!Number.isFinite(x.pins))x.pins=x.run;x.run=null}});
+  const runs=src.map(x=>x&&Number.isFinite(x.run)?x.run:null),useRuns=runs.filter(v=>v!=null).length>=3;
+  const diff=f=>!useRuns||runs[f]==null?null:f===0?runs[0]:runs[f-1]==null?null:runs[f]-runs[f-1];
+  const bad=(f,t)=>{flags.add(f);if(t)notes.push(t)};
+  const W=f=>{const x=src[f];return x&&Number.isFinite(x.pins)?x.pins:null};
+  for(let f=0;f<10;f++){const x=src[f]||{},m=MK(x.mark),d=diff(f),w=W(f);
+    if(x.unclear)flags.add(f);
+    if(m==='/'){bx[f]=B('/',10);continue}
+    if(m==='S'&&(d==null||d>=10)){bx[f]=B('X',10);continue}
+    if(m==='X'||m==='S'){if(m==='X'&&(d==null||d===10))bx[f]=B('',10);
+      else if(d!=null&&d>10)bx[f]=B('X',10);
+      else bad(f,`box ${f+1} is marked ${m==='X'?'X':'as a strike'} but the running total goes up by ${d}`);continue}
+    let t=w??d;if(t==null){if(src[f]&&(x.run!=null||x.pins!=null))bad(f);continue}
+    if(w!=null&&d!=null&&w!==d)bad(f,`box ${f+1} shows ${w} pins but the running total goes up by ${d}`);
+    if(t<0||t>10){bad(f,`box ${f+1} adds ${t} with no spare mark`);continue}
+    bx[f]=B('',t)}
+  for(let f=0;f<10;f++){const b=bx[f];if(!b||!b.m)continue;const d=diff(f),w=W(f);
+    let bonus=b.m==='/'&&w!=null?w:d==null?null:d-10;
+    if(b.m==='/'&&w!=null&&d!=null&&w!==d-10)bad(f,`box ${f+1}: spare with ${w} written, but the running total goes up by ${d}`);
+    if(bonus==null)continue;
+    const off=()=>{misfit++;bad(f,`box ${f+1}: the running total doesn’t fit the ${b.m==='X'?'strike':'spare'}`)};
+    if(f===9){if(bonus<0||bonus>(b.m==='X'?20:10)){off();continue}b.ex=bonus;continue}
+    const g=bx[f+1];if(!g)continue;
+    if(b.m==='/'){if(g.m==='X'){if(bonus!==10)off()}else if(bonus>=0&&bonus<=maxB1(g))g.b1=bonus;else off();continue}
+    if(g.m==='X'){if(f+1===9){if(bonus>=10&&bonus<=20)g.e1=bonus-10;else off()}
+      else{const h=bx[f+2];if(!h)continue;if(h.m==='X'){if(bonus!==20)off()}else if(bonus>=10&&bonus-10<=maxB1(h))h.b1=bonus-10;else off()}}
+    else if(g.m==='/'){if(bonus!==10)off()}
+    else if(bonus>=0&&bonus<=(g.t===10?9:g.t))g.b12=bonus;else off()}
+  const q=bstat(bx),written=Number.isFinite(row.total)?row.total:runs[9];
+  if(q.n===10&&Number.isFinite(written)&&q.total!==written)notes.push(`the boxes add up to ${q.total}; the sheet says ${written}`);
+  return{boxes:bx,flags:[...flags],notes,misfit}}
+// Heavy shading can make a spare look like a strike (or the reverse). If the running totals don't fit the marks
+// as read, try swapping strike/spare on the marked boxes and keep the reading the totals agree with.
+function fromSheet(row){const first=convertSheet(row);if(!first.misfit)return first;
+  const marked=(row.boxes||[]).slice(0,10).map((x,f)=>x&&['S','/'].includes(MK(x.mark))?f:-1).filter(f=>f>=0);
+  if(!marked.length||marked.length>8)return first;
+  let best=null;
+  for(let m=1;m<(1<<marked.length);m++){const r={...row,boxes:(row.boxes||[]).map(x=>x&&{...x})};let n=0;
+    marked.forEach((f,i)=>{if(m>>i&1){r.boxes[f].mark=MK(r.boxes[f].mark)==='S'?'/':'S';n++}});
+    const c=convertSheet(r);if(c.misfit)continue;if(!best||n<best.n)best={c,n,m}}
+  if(!best)return first;
+  const c=best.c;marked.forEach((f,i)=>{if(best.m>>i&1){c.flags.push(f);c.notes.push(`box ${f+1} looked like a ${MK(row.boxes[f].mark)==='S'?'strike':'spare'}, but the totals only work as a ${MK(row.boxes[f].mark)==='S'?'spare':'strike'}. Scored that way; please confirm.`)}});
+  return c}
+// ----- Who is who on the photo -----
+// Each column on the sheet carries a name (full, first, last, initials, "Joe L") and the bowler's average.
+// Every column is scored against the roster; the app suggests a bowler for each and the captain confirms.
+// Nothing is assigned by position, so a pre-set lineup in a different order can't put scores on the wrong person.
+const GHOSTY=/^(ghost|blind|absent|dummy|vacant|none|abs)$/;
+function nameScore(raw,name){const r=norm(raw);if(!r)return 0;const n=norm(name);if(!n)return 0;if(r===n)return 100;
+  const p=n.split(' '),f=p[0],l=p[p.length-1],rp=r.split(' '),R=r.replace(/ /g,'');
+  if(rp.length>1){const a=rp[0],z=rp[rp.length-1];
+    if((a===f||(a.length>=3&&f.startsWith(a)))&&(z===l||(z.length>=1&&l.startsWith(z))))return 90;  // "Joe L", "Jim Tyrrell"
+    if(z===l&&a[0]===f[0])return 85;                                                               // "J Beams"
+    if(rp.join('')===f[0]+l[0])return 75;                                                           // "J L"
+    if(a===f||z===l)return 55;return 0}
+  if(R===l)return 82;if(R===f)return 72;                                                            // "Doody", "Craig"
+  if(R.length>=2&&R.length<=3&&(R===f[0]+l[0]||R===p.map(w=>w[0]).join('')))return 75;             // "JL", "PM"
+  if(R.length>=3&&l.startsWith(R))return 58;if(R.length>=3&&f.startsWith(R))return 56;              // "Cav", "Russ"
+  if(R.length>=4&&l.includes(R))return 45;return 0}
+// Candidates: this team's roster and subs already added first, then the rest of the league (only on a clear name match).
+function candidates(){const mine=roster().map(x=>({name:x.name,avg:Number(x.avg),mine:true}));const have=new Set(mine.map(x=>x.name));
+  const rest=Object.keys(L.teams).flatMap(t=>L.teams[t].bowlers.filter(b=>!have.has(b.name)).map(b=>({name:b.name,avg:Number(avgFor(b.name,P.week)),team:t})));
+  return mine.concat(rest)}
+function suggest(rows,preset){const cand=candidates(),pairs=[];
+  rows.forEach((b,k)=>{if(b.absent)return;const avg=Number(b.avg),hasAvg=b.avg!=null&&b.avg!==''&&Number.isFinite(avg);
+    cand.forEach(c=>{let sc=nameScore(b.raw,c.name);const near=hasAvg&&Number.isFinite(c.avg)&&Math.abs(c.avg-avg)<=1.5;
+      if(!c.mine&&sc<55)return;                       // a sub from another team needs a real name match
+      if(sc===0){if(!(c.mine&&near))return;sc=25}      // no name match: the average alone is only a guess
+      else if(near)sc+=12;
+      if(c.mine)sc+=8;if(preset.has(c.name))sc+=4;
+      pairs.push({k,c,sc})})});
+  pairs.sort((x,y)=>y.sc-x.sc);const pick=rows.map(()=>null),used=new Set();
+  pairs.forEach(x=>{if(pick[x.k]||used.has(x.c.name))return;pick[x.k]=x;used.add(x.c.name)});
+  return pick}
+function applyScan(r){const list=(r.strings||[]).filter(g=>g&&(g.bowlers||[]).length);
+  if(!list.length){scanMsg((r.warnings&&r.warnings[0])||'No bowler columns found. Try a closer, straighter photo.');return}
+  if(r.photoUrl)M.photos.push(r.photoUrl);
+  const groups=[];
+  list.forEach((g,i)=>{const idx=list.length===1?M.cur:(g.string>=1&&g.string<=3?g.string-1:M.cur+i);
+    if(idx<M.cur||idx>2||M.strings[idx].saved||groups.some(x=>x.idx===idx))return;
+    const s=M.strings[idx],preset=new Set(s.lineup.filter(x=>x.name&&!isAbsent(x)).map(x=>x.name));
+    const rows=(g.bowlers||[]).slice(0,5).map(b=>{const raw=String(b.name||'').trim(),gh=GHOSTY.test(norm(raw).replace(/ /g,''));
+      const noBoxes=!(b.boxes||[]).some(x=>x&&(x.mark||Number.isFinite(x.pins)||Number.isFinite(x.run)));
+      const absent=!!b.absent||gh||noBoxes;const cv=absent?null:fromSheet(b);
+      return{raw,avg:b.avg,absent,cv,total:cv?bstat(cv.boxes).total:null}});
+    const sug=suggest(rows,preset);
+    rows.forEach((x,k)=>{x.pick=x.absent?ABS:sug[k]?sug[k].c.name:'';x.sc=x.absent?100:sug[k]?sug[k].sc:0;x.team=sug[k]&&sug[k].c.team||''});
+    groups.push({idx,rows,lane:g.lane})});
+  if(!groups.length){scanMsg('Those strings are already saved. Reopen one to replace it.');return}
+  M.pending={groups};persist();renderPick();renderPad();
+  scanMsg('Check who is who below, then tap Use these bowlers.');
+  $('pickBox').scrollIntoView({behavior:'smooth',block:'start'})}
+function confLabel(x){if(x.absent)return'<span class="conf ok">No scores: absent</span>';if(!x.pick)return'<span class="conf chk">Not found. Choose the bowler.</span>';
+  return x.sc>=75?'<span class="conf ok">Matched</span>':x.sc>=45?'<span class="conf chk">Likely. Please check.</span>':'<span class="conf chk">Guess from the average. Please check.</span>'}
+function pickOptions(sel){const mine=roster(),have=new Set(mine.map(x=>x.name));
+  return`<option value="">— choose bowler —</option>`+mine.map(r=>`<option value="${esc(r.name)}" ${r.name===sel?'selected':''}>${esc(r.name)} (${fmt(Number(r.avg))})</option>`).join('')+
+    Object.keys(L.teams).sort().map(t=>t===P.team?'':`<optgroup label="Sub from Team ${esc(t)}">${L.teams[t].bowlers.filter(b=>!have.has(b.name)).map(b=>`<option value="${esc(b.name)}" ${b.name===sel?'selected':''}>${esc(b.name)} (${fmt(avgFor(b.name,P.week))})</option>`).join('')}</optgroup>`).join('')+
+    `<option value="${ABS}" ${sel===ABS?'selected':''}>Absent (75 avg, −7 pins)</option>`}
+function renderPick(){const box=$('pickBox');if(!M||!M.pending){box.hidden=true;box.innerHTML='';return}
+  box.hidden=false;
+  box.innerHTML=`<h3>Who is who on the photo?</h3><p class="note" style="margin:0 0 6px">The app matched each column on the sheet to a bowler by the name and average written at the top. Change any that are wrong. Scores go to the bowler you pick here, whatever order your lineup was in.</p>`+
+    M.pending.groups.map((g,gi)=>`<div class="grp"><b>String ${g.idx+1}</b>${g.rows.map((x,k)=>`<div class="prow"><div class="col">${k+1}</div>
+      <div class="raw">“${esc(x.raw||'no name')}”<small>${x.avg!=null&&x.avg!==''?'avg '+esc(x.avg)+' · ':''}${x.absent?'no boxes':'from the sheet'}</small>${confLabel(x)}</div>
+      <div class="tot">${x.total??''}</div>
+      <select data-g="${gi}" data-k="${k}" aria-label="String ${g.idx+1} column ${k+1} bowler">${pickOptions(x.pick)}</select></div>`).join('')}</div>`).join('')+
+    `<div class="controls"><button class="gold" id="pickUse">Use these bowlers</button><button class="ghost" id="pickDrop">Discard the photo</button><span class="msg" id="pickMsg"></span></div>`;
+  box.querySelectorAll('select[data-g]').forEach(el=>el.onchange=()=>{const x=M.pending.groups[+el.dataset.g].rows[+el.dataset.k];x.pick=el.value;x.sc=100;x.absent=el.value===ABS||!x.cv;persist();renderPick()});
+  $('pickUse').onclick=usePicks;$('pickDrop').onclick=()=>{M.pending=null;persist();renderPick();renderPad();scanMsg('Photo discarded.')}}
+function usePicks(){const msg=t=>{$('pickMsg').textContent=t};
+  for(const g of M.pending.groups){const names=g.rows.filter(x=>x.pick&&x.pick!==ABS).map(x=>x.pick);
+    if(g.rows.some(x=>!x.pick))return msg(`String ${g.idx+1}: choose a bowler for every column.`);
+    if(new Set(names).size<names.length)return msg(`String ${g.idx+1}: the same bowler is picked twice.`);
+    if(g.rows.some(x=>x.pick!==ABS&&!x.cv))return msg(`String ${g.idx+1}: a column with no boxes can only be Absent.`)}
+  const filled=[],changes=[];
+  M.pending.groups.forEach(g=>{const s=M.strings[g.idx],before=s.lineup.filter(b=>b.name&&!isAbsent(b)).map(b=>b.name),notes=[];
+    const rows=g.rows.slice();while(rows.length<5)rows.push({pick:ABS,absent:true});
+    s.lineup=rows.map(x=>{if(x.pick===ABS)return{name:ABS,avg:'75',orig:null};
+      let r=roster().find(y=>y.name===x.pick);
+      if(!r){const a=avgFor(x.pick,P.week);M.subs.push({name:x.pick,avg:a,isNew:false});r={name:x.pick,avg:a}}
+      return{name:x.pick,avg:String(r.avg),orig:r.avg}});
+    s.boxes=rows.map(x=>x.cv?x.cv.boxes:Array(10).fill(null));s.flags={};
+    rows.forEach((x,p)=>{if(!x.cv)return;s.flags[p]=x.cv.flags;x.cv.notes.forEach(t=>notes.push(`${x.pick}: ${t}`))});
+    const now=new Set(s.lineup.filter(b=>!isAbsent(b)).map(b=>b.name)),out=before.filter(n=>!now.has(n)),inn=[...now].filter(n=>!before.includes(n));
+    if(before.length&&(out.length||inn.length)){const ins=inn.concat(Array(Math.max(0,out.length-inn.length)).fill('Absent'));changes.push(`String ${g.idx+1}: ${ins.join(', ')} in for ${out.join(', ')||'an empty spot'}`)}
+    if(g.lane&&!s.lane&&lanesPair().includes(String(g.lane)))s.lane=String(g.lane);
+    s.notes=notes;s.src='photo';filled.push(g.idx+1)});
+  M.pending=null;editing=null;snaps=[];M.view=M.cur;persist();renderAll();renderPick();
+  scanMsg(`Filled string${filled.length>1?'s':''} ${filled.join(', ')}. Check every box, then save.`+(changes.length?` Lineup changed to match the photo (${changes.join('; ')}). The handicap uses the new lineup.`:''));
+  $('cards').scrollIntoView({behavior:'smooth',block:'start'})}
+
+/* ---------- results, submission, CSV ---------- */
+const EXPORT_HEADERS=['Bowler','Team','Night','Lanes','Average','String 1','String 2','String 3','Total','Strings Bowled','Spares','Spare Fill','Strikes','Strike Fill','Notes'];
+function subNote(name){if(L.teams[P.team]&&L.teams[P.team].bowlers.some(b=>b.name===name))return'';const s=M.subs.find(x=>x.name===name);
+  if(s&&s.isNew)return'New bowler, not in the league yet (75 avg)';const t=Object.keys(L.teams).find(k=>L.teams[k].bowlers.some(b=>b.name===name));return t?`Sub from Team ${t}`:'Sub'}
+// Ball-by-ball columns for the box detail export, filled in where the entry tells us the balls.
+function balls(b,f){if(!b)return['','',''];const n=v=>v==null?'':v;
+  if(f===9&&b.m==='X')return[10,n(b.e1),b.e1!=null&&b.ex!=null?b.ex-b.e1:''];
+  if(f===9&&b.m==='/')return[n(b.b1),b.b1!=null?10-b.b1:'',n(b.ex)];
+  if(b.m==='X')return[10,'',''];
+  if(b.m==='/')return[n(b.b1),b.b1!=null?10-b.b1:'',''];
+  return[n(b.b1),b.b1!=null&&b.b12!=null?b.b12-b.b1:'',b.b12!=null?b.t-b.b12:'']}
+function build(){const m=matchFor(P.team,P.week)||{},map=new Map();
+  M.strings.forEach((s,i)=>{if(!s.saved)return;s.lineup.forEach((b,p)=>{if(!b.name||isAbsent(b))return;const x=bstat(s.boxes[p]);
+    let r=map.get(b.name);if(!r){r={name:b.name,avg:b.avg,orig:b.orig,s:['','',''],n:0,sp:0,sf:0,st:0,stf:0};map.set(b.name,r)}
+    r.s[i]=x.total;r.n++;r.sp+=x.sp;r.sf+=x.sf;r.st+=x.st;r.stf+=x.stf})});
+  const rows=[...map.values()].sort((a,b)=>a.name.localeCompare(b.name)).map(r=>[r.name,P.team,m.night||'',m.lanes||'',Number(r.avg),...r.s,
+    r.s.reduce((t,v)=>t+(v===''?0:v),0),r.n,r.sp,r.sf,r.st,r.stf,
+    subNote(r.name)]);
+  const bh=['Week','Team','Bowler','String','Starting Lane'];for(let f=1;f<=10;f++)bh.push(`Box ${f} Ball 1`,`Box ${f} Ball 2`,`Box ${f} Ball 3`,`Box ${f} Score`);bh.push('Total');
+  const box=[];M.strings.forEach((s,i)=>{if(!s.saved)return;s.lineup.forEach((b,p)=>{if(!b.name||isAbsent(b))return;const bx=s.boxes[p],x=bstat(bx),row=[P.week,P.team,b.name,i+1,s.lane];
+    bx.forEach((z,f)=>row.push(...balls(z,f),x.run[f]==null?'':x.run[f]-(f?x.run[f-1]:0)));row.push(x.total);box.push(row)})});
+  box.sort((a,b)=>a[2].localeCompare(b[2])||a[3]-b[3]);
+  const summary=M.strings.map((s,i)=>{if(!s.saved)return'';const h=handicap(s),a=absentCount(s);
+    return`S${i+1}: ${teamScore(s)} (pins ${scratch(s)}${a?`, absent ${a}`:''}, hdcp ${h.ours}${h.known?`, avg ${fmt(h.ourSum)} vs ${fmt(h.oppSum)}`:', opp avg not entered'}${s.lane?`, lane ${s.lane}`:''}${s.src==='photo'?', from photo':''})`}).filter(Boolean).join(' | ')+
+    (M.photos.length?` | Photo${M.photos.length>1?'s':''}: ${M.photos.join(' ')}`:'');
+  return{rows,box,bh,summary,night:m.night||'',lanes:m.lanes||''}}
+const q=v=>{const s=String(v??'');return/[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+function csvText(b){return[EXPORT_HEADERS,...b.rows].map(r=>r.map(q).join(',')).join('\n')+'\n\n'+[b.bh,...b.box].map(r=>r.map(q).join(',')).join('\n')+'\n'}
+const slug=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'');
+const fileName=b=>['wgc','mens','week'+P.week,slug(b.night).slice(0,3),slug(P.team),'vs',slug(opp())].filter(Boolean).join('_')+'.csv';
+function renderResults(){$('results').hidden=!M||!M.done;if($('results').hidden)return;const b=build();
+  $('resNote').textContent=`${b.rows.length} bowlers. ${b.summary}`;
+  $('resTable').innerHTML=`<thead><tr>${['Bowler','Avg','S1','S2','S3','Total','Spares','Fill','Strikes','Fill'].map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${b.rows.map(r=>`<tr>${[r[0],fmt(r[4]),r[5],r[6],r[7],r[8],r[10],r[11],r[12],r[13]].map(v=>`<td>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+  $('submitMsg').textContent=M.sending?'Sending…':(M.sent||0)>=3?`All three strings are with the commissioner (${M.submitted}). Send again only after a correction.`:'';
+  $('csvText').value=csvText(b)}
+/* ---------- send each string as soon as it's saved ---------- */
+// The whole match so far goes to the league every time a string is saved, and the server keeps a copy of
+// this phone's match. If the phone loses its storage (Safari can), the saved strings come back from that copy.
+const savedCount=()=>M?M.strings.filter(x=>x.saved).length:0;
+const snapshot=()=>JSON.stringify({strings:M.strings,cur:M.cur,view:M.view,done:M.done,subs:M.subs,photos:M.photos,submitted:M.submitted||'',sent:M.sent||0});
+function sendMatch(){if(!M||M.sending)return;const n=savedCount();if(!n)return;const b=build();if(!b.rows.length)return;
+  if(typeof google==='undefined'||!google.script){M.sendErr='Not connected to the league server.';persist();renderSend();return}
+  const mm=M;mm.sending=true;mm.sendErr='';renderSend();renderResults();
+  google.script.run.withSuccessHandler(id=>{mm.sending=false;mm.submitted=id;mm.sent=n;mm.sendErr='';persist();renderSend();renderResults();renderTabs()})
+    .withFailureHandler(e=>{mm.sending=false;mm.sendErr=String(e&&e.message||e);persist();renderSend();renderResults()})
+    .submitMatch(JSON.stringify({team:P.team,opponent:opp(),week:P.week,night:b.night,lanes:b.lanes,rows:b.rows,box:b.box,boxHeaders:b.bh,summary:b.summary,strings:n,state:snapshot()}))}
+function renderSend(){if(!M){$('sendRow').hidden=true;return}const n=savedCount(),sent=Math.min(M.sent||0,n);
+  $('sendRow').hidden=!n;$('sendBtn').hidden=true;if(!n)return;
+  const list=k=>k===1?'String 1':`Strings 1–${k}`;
+  if(M.sending)$('sendMsg').innerHTML=`<span>Sending ${list(n).toLowerCase()} to the league…</span>`;
+  else if(sent>=n)$('sendMsg').innerHTML=`<span class="ok">✓ ${list(n)} sent to the league.</span>`;
+  else{$('sendMsg').innerHTML=`<span class="bad">${n-sent===1?`String ${n} is`:`Strings ${sent+1}–${n} are`} saved on this phone but not sent yet${M.sendErr?` (${esc(M.sendErr.replace(/\.$/,''))})`:''}.</span>`;$('sendBtn').hidden=false}}
+$('sendBtn').onclick=sendMatch;
+$('submitBtn').onclick=()=>{M.sent=0;sendMatch()};
+window.addEventListener('online',()=>{if(M&&savedCount()>(M.sent||0))sendMatch()});
+// When a match opens, ask the server for its copy. If it has more saved strings than this phone, use it.
+function checkServerCopy(){if(!M||typeof google==='undefined'||!google.script)return;const key=mkey(),have=savedCount();
+  google.script.run.withSuccessHandler(t=>{if(!t||mkey()!==key)return;let st;try{st=JSON.parse(t)}catch(e){return}
+    const theirs=(st.strings||[]).filter(x=>x&&x.saved).length;
+    if(theirs>savedCount()){Object.assign(M,{strings:st.strings,cur:st.cur,view:st.cur,done:!!st.done,subs:st.subs||[],photos:st.photos||[],submitted:st.submitted||'',sent:theirs,sendErr:'',pending:null});
+      editing=null;snaps=[];persist();renderAll();say(`Restored ${theirs===1?'string 1':'strings 1–'+theirs} from the league’s copy.`)}
+    else if(have>(M.sent||0))sendMatch()})
+    .withFailureHandler(()=>{if(have>(M.sent||0))renderSend()})
+    .getMatchCopy(JSON.stringify({team:P.team,week:P.week}))}
+$('dlBtn').onclick=()=>{const b=build(),t=csvText(b);try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download=fileName(b);document.body.appendChild(a);a.click();a.remove();
+  $('dlMsg').textContent='If nothing downloaded, use Copy CSV.'}catch(e){$('csvText').hidden=false;$('dlMsg').textContent='Download isn’t available here. Use Copy CSV.'}};
+$('copyBtn').onclick=()=>{const t=$('csvText');t.value=csvText(build());const fb=()=>{t.hidden=false;t.focus();t.select();$('dlMsg').textContent='Text selected. Copy it from the box below.'};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t.value).then(()=>$('dlMsg').textContent='CSV copied.',fb);else fb()};
+/* ---------- Standings and Leaders pages ---------- */
+let S=null,view='recap';
+const TITLES={teams:'Team Standings',leaders:'Season Leaders',recap:'Weekly Recap',score:'Digital Scoresheet'};
+function show(v){view=v;$('pageTitle').textContent=TITLES[v];$('matchline').hidden=v!=='score';
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
+  $('viewScore').hidden=v!=='score';$('viewTeams').hidden=v!=='teams';$('viewLeaders').hidden=v!=='leaders';$('viewRecap').hidden=v!=='recap';
+  if(v==='recap'){if(!RC)loadRecap(false);else renderRecap()}
+  if((v==='teams'||v==='leaders')&&!S)loadStandings(false);else if(v==='teams'||v==='leaders')renderStandings();
+  window.scrollTo(0,0)}
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>show(b.dataset.view));
+function loadStandings(fresh){if(typeof google==='undefined')return;
+  ['teamsLoading','leadersLoading'].forEach(i=>{$(i).hidden=false;$(i).textContent=fresh?'Refreshing…':'Loading…'});
+  google.script.run.withSuccessHandler(t=>{S=JSON.parse(t);renderStandings()}).withFailureHandler(e=>{['teamsLoading','leadersLoading'].forEach(i=>$(i).textContent='Couldn’t load: '+(e&&e.message||e))}).getStandings(!!fresh)}
+const upper=s=>String(s||'').toUpperCase();
+function myNames(){return new Set(L&&L.teams[P.team]?L.teams[P.team].bowlers.map(b=>b.name):[])}
+function renderStandings(){if(!S)return;$('teamsLoading').hidden=true;$('leadersLoading').hidden=true;
+  const upd=`<div class="upd"><span>From the master file · ${esc(S.updated)}</span><button class="ghost" data-refresh="1">Refresh</button></div>`;
+  $('teamsBody').innerHTML=upd+S.teams.map((blk,bi)=>`<div class="night">${esc(blk.night||'')}</div>
+    <table class="st"><thead><tr><th>#</th><th>Team</th><th>W</th><th>L</th><th>Pins</th><th>+/−</th></tr></thead><tbody>
+    ${blk.rows.map((r,ri)=>`<tr class="team" data-wk="${bi}-${ri}"><td class="rk">${esc(r.rank)}</td><td class="tn">${esc(r.team)}</td><td><b>${esc(r.won)}</b></td><td>${esc(r.lost)}</td><td>${esc(r.pins)}</td><td>${esc(r.pm)}</td></tr>
+      <tr class="wk" id="wk${bi}-${ri}" hidden><td></td><td colspan="5"><div class="chips">${r.weeks.filter(w=>Number(w.won)+Number(w.lost)>0).reverse().map(w=>`<span class="chip ${Number(w.won)>Number(w.lost)?'w':Number(w.won)<Number(w.lost)?'l':'t'}">${esc(w.label)} ${esc(w.won)}–${esc(w.lost)}</span>`).join('')||'<span class="note">No results yet</span>'}</div>
+        <div class="tdet">
+          <div><label>Marks</label><b>${esc(r.marks)}</b><span>strikes + spares</span></div>
+          <div><label>Ghosts</label><b>${esc(r.ghosts)}</b><span>ghost strings</span></div>
+        </div></td></tr>`).join('')}
+    </tbody></table>`).join('<div style="height:14px"></div>')+'<p class="note">Tap a team to see its week-by-week results.</p>';
+  $('teamsBody').querySelectorAll('tr.team').forEach(tr=>tr.onclick=()=>{const w=$('wk'+tr.dataset.wk);w.hidden=!w.hidden});
+  $('leadersTop').hidden=false;
+  // Rank first, then name, on a narrow screen.
+  const q=($('find').value||'').trim().toLowerCase();
+  const norm=b=>{const ri=b.head.findIndex(h=>/^rank$/i.test(h));if(ri<=0)return b;const mv=r=>[r[ri]].concat(r.filter((_,i)=>i!==ri));return{title:b.title,head:mv(b.head),rows:b.rows.map(mv)}};
+  // On a phone, wide tables drop the Strings column (everyone listed already meets the minimum).
+  const narrowHide=(head,i)=>head.length>=5&&/^strings$/i.test(String(head[i]).trim());
+  const VIA={'Rookie of the Year':'Rookie','Most Improved':'Improved','High Single':'High Single','Most Strikes':'Strikes','Most Spares':'Spares','At-Large':'At-Large','Alternate':'Alternate'};
+  const shortVia=v=>VIA[String(v).trim()]||v;
+  const boards=S.boards.map(norm).map((b,bi)=>{const ni=b.head.findIndex(h=>/name/i.test(h));const qi=b.head.findIndex(h=>/^(qualification|classification)$/i.test(String(h).trim()));
+    // Title on one line; criteria (string minimum etc.) as a gold line; count as a small white line.
+    let t1=b.title,crit=[];const pm=t1.match(/\s*\(([^)]*)\)\s*$/);if(pm){t1=t1.slice(0,pm.index);crit.push(pm[1])}
+    let note='';const cm=t1.indexOf(', ');if(cm>0){const extra=t1.slice(cm+2);t1=t1.slice(0,cm);if(/rookies/i.test(extra))note=extra;else crit.unshift(extra)}
+    const all=b.rows.map((r,i)=>({r,cls:b.field!=null?(i<b.field?'q':'alt'+(i===b.field?' altfirst':'')):(String(r[0]).trim()==='1'?'top':'')}));
+    const rows=all.filter(x=>!q||String(x.r[ni<0?0:ni]).toLowerCase().includes(q));
+    if(q&&!rows.length)return'';
+    const isOpen=q?true:!!openBoards[b.title];
+    const n=b.rows.length,scores=/high (single|triple)/i.test(b.title);
+    const count=b.field!=null?`${b.field} qualifiers · ${n-b.field} alternates`:`${n} ${n===1?'bowler':'bowlers'} qualified`;
+    return`<section class="lbd${b.field!=null?' champ':''}"><h3><button class="tg" data-bd="${esc(b.title)}" aria-expanded="${isOpen}"><span class="t"><span class="t1">${esc(t1)}</span>${crit.length?`<span class="t2">${esc(crit.join(' · '))}</span>`:''}${note?`<span class="t4">${esc(note)}</span>`:''}<span class="t3">${q?`${rows.length} of ${n} shown`:count}</span></span><span class="pm" aria-hidden="true">${isOpen?'−':'+'}</span></button></h3>
+      ${isOpen&&!rows.length?'<div class="more">No bowlers qualify yet.</div>':''}${isOpen&&rows.length?`<div class="win"><table><thead><tr>${b.head.map((h,i)=>`<th class="${i===ni?'nm':''}${narrowHide(b.head,i)?' nh':''}">${esc(i===qi?'Via':h)}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map(x=>`<tr class="${x.cls}">${x.r.map((c,i)=>`<td class="${i===ni?'nm':''}${narrowHide(b.head,i)?' nh':''}">${esc(i===qi?shortVia(c):c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>${rows.length>10?`<div class="more">Scroll for all ${rows.length}${b.field!=null?' · alternates start at 31':''}</div>`:''}`:''}</section>`}).join('');
+  $('leadersBody').innerHTML=upd+(boards||'<p class="note">No bowler matches that name.</p>');
+  document.querySelectorAll('[data-refresh]').forEach(b=>b.onclick=()=>loadStandings(true));
+  document.querySelectorAll('[data-bd]').forEach(b=>b.onclick=()=>{const t=b.dataset.bd;openBoards[t]=!openBoards[t];renderStandings()})}
+const openBoards={};
+$('find').oninput=()=>renderStandings();
+
+/* ---------- Weekly Recap page ---------- */
+let RC=null,rcWeek=null;const rcOpen={};
+function loadRecap(fresh){if(typeof google==='undefined')return;$('recapLoading').hidden=false;$('recapLoading').textContent=fresh?'Refreshing…':'Loading the weekly recap…';
+  google.script.run.withSuccessHandler(t=>{RC=JSON.parse(t);if(!rcWeek||!RC.weeks[rcWeek])rcWeek=RC.latest;renderRecap()})
+    .withFailureHandler(e=>{$('recapLoading').textContent='Couldn’t load the recap: '+(e&&e.message||e)}).getRecap(!!fresh)}
+function renderRecap(){if(!RC)return;$('recapLoading').hidden=true;
+  const pend=RC.pending?`<p class="note" style="margin:10px 0 0">Week ${RC.pending.week} recap will post once all ${RC.pending.total} teams' scores are in (${RC.pending.entered} of ${RC.pending.total} so far).</p>`:'';
+  if(!RC.latest){$('recapBody').innerHTML=pend||'<p class="empty">No scores have been entered yet this season.</p>';return}
+  const A=RC.weeks[rcWeek];
+  const pick=`<div class="wkpick" role="tablist">${RC.list.slice().reverse().map(w=>`<button data-rw="${w}" class="${w===rcWeek?'on':''}" role="tab" aria-selected="${w===rcWeek}">Week ${w}</button>`).join('')}</div>`;
+  const P_=t=>`<p>${esc(t)}</p>`;
+  let s=pend+`<article class="story"><div class="kicker">Week ${A.week} recap${A.week===RC.latest?' · Latest':''}</div><h2>${esc(A.headline)}</h2>`+
+    (A.dek?`<p class="dek">${esc(A.dek)}</p>`:'')+`<div class="meta">${esc(A.dates.join(' & '))} · WGC Men's Candlepin</div>`;
+  if(A.notes.length)s+=`<div class="notes"><h3 style="margin:0 0 4px;border:0;padding:0;font-size:15px;color:var(--ink)">From the commissioner</h3><ul>${A.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul></div>`;
+  if(A.lede)s+=`<p><span class="dl">WESTON, Mass. —</span> ${esc(A.lede)}</p>`;
+  A.sections.forEach(sec=>{s+=`<h3>${esc(sec.title)}<small>${esc(sec.date)}</small></h3>`+sec.stories.map(t=>`<p><b class="mh">${esc(t.head)}.</b> ${esc(t.text)}</p>`).join('')});
+  if(A.standouts.length)s+=`<h3>Standout performances</h3>`+A.standouts.map(P_).join('');
+  if(A.standings.length)s+=`<h3>The standings</h3>`+A.standings.map(P_).join('');
+  if(A.ahead.length)s+=`<h3>Week ${A.nextWeek} matchups</h3><ul class="ahead">${A.ahead.map(d=>`<li class="nt">${esc(d.title)}</li>`+d.lines.map(l=>`<li>${esc(l)}</li>`).join('')).join('')}</ul>`;
+  s+=`</article>`;
+  $('recapBody').innerHTML=pick+s+`<div class="upd"><span>Written from the master file · ${esc(RC.updated)}</span><button class="ghost" data-rrefresh="1">Refresh</button></div>`;
+  $('recapBody').querySelectorAll('[data-rw]').forEach(b=>b.onclick=()=>{rcWeek=+b.dataset.rw;renderRecap();window.scrollTo(0,0)});
+  $('recapBody').querySelector('[data-rrefresh]').onclick=()=>loadRecap(true)}
+
+function renderAll(){if(!M)return;renderLineup();renderScore();renderResults();renderSend();renderPick()}
+load();
+show('recap');
+</script>
+</body>
+</html>
