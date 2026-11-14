@@ -1012,11 +1012,11 @@ function renderCaptains(){if(!CC)return;$('ccLoading').hidden=true;
   if(!t){$('ccBody').innerHTML='<p class="empty">Pick a team to see its bowlers.</p>';return}
   const upd=`<div class="upd"><span>From the master file · ${esc(CC.updated)}</span><button class="ghost" data-ccrefresh="1">Refresh</button></div>`;
   if(ccView!=='roster'){$('ccBody').innerHTML=(ccView==='lanes'?ccLanes(t):ccView==='weeks'?ccWeeks(t):ccOpp(t))+upd;$('ccBody').querySelector('[data-ccrefresh]').onclick=()=>loadCaptains(true);return}
-  const H=CC.head,rows=CC.teams[t].slice(),c=ccSort.c,dir=ccSort.up?1:-1;
-  rows.sort((a,b)=>{const x=a[c],y=b[c];if(c<=1)return dir*String(x).localeCompare(String(y));
+  const H=CC.head.filter((_,i)=>i!==1),rows=CC.teams[t].map(r=>r.filter((_,i)=>i!==1)),c=ccSort.c,dir=ccSort.up?1:-1;
+  rows.sort((a,b)=>{const x=a[c],y=b[c];if(c===0)return dir*String(x).localeCompare(String(y));
     if(x==null&&y==null)return a[0].localeCompare(b[0]);if(x==null)return 1;if(y==null)return -1;return dir*(x-y)||a[0].localeCompare(b[0])});
   const avgCol=i=>/aver|fill|change/i.test(H[i]),chg=i=>/change/i.test(H[i]);
-  let none=false;const cell=(v,i)=>{if(i===0)return esc(v);if(none&&i>3)return'';if(i===1)return /^(yes|y|new|true)$/i.test(String(v))?'<span class="rk">ROOKIE</span>':'';
+  let none=false;const cell=(v,i)=>{if(i===0)return esc(v);if(none&&i>2)return'';
     if(v==null)return'';const n=Number(v);
     if(chg(i))return n===0?'0.00':`<span class="${n>0?'up':'dn'}">${n>0?'+':'−'}${Math.abs(n).toFixed(2)}</span>`;
     return avgCol(i)?n.toFixed(2):String(Math.round(n))};
@@ -1024,10 +1024,10 @@ function renderCaptains(){if(!CC)return;$('ccLoading').hidden=true;
   const tot=i=>rows.reduce((a,r)=>a+(Number(r[i])||0),0);
   const sumI=H.map((h,i)=>i>1&&/^(strings?|pins|spares|strikes)$/i.test(h)?i:-1).filter(i=>i>=0);
   const foot=sumI.length?`<tfoot><tr><td>Team totals</td>${H.slice(1).map((h,k)=>`<td>${sumI.includes(k+1)?tot(k+1):''}</td>`).join('')}</tr></tfoot>`:'';
-  $('ccBody').innerHTML=`<div class="ccwrap"><table class="cc"><thead><tr>${H.map((h,i)=>`<th data-c="${i}" class="${i===c?'on'+(ccSort.up?' up':''):''}" scope="col">${esc(i===1?'Rookie':h)}</th>`).join('')}</tr></thead>
+  $('ccBody').innerHTML=`<div class="ccwrap"><table class="cc"><thead><tr>${H.map((h,i)=>`<th data-c="${i}" class="${i===c?'on'+(ccSort.up?' up':''):''}" scope="col">${esc(h)}</th>`).join('')}</tr></thead>
     <tbody>${rows.map(r=>{none=strI>=0&&!(r[strI]>0);return`<tr class="${none?'none':''}">${r.map((v,i)=>i===0?`<th scope="row" style="font:inherit;text-transform:none;letter-spacing:0;color:var(--ink);text-align:left;cursor:default">${cell(v,i)}</th>`:`<td>${cell(v,i)}</td>`).join('')}</tr>`}).join('')}</tbody>${foot}</table></div>
     <div class="upd"><span>From the master file’s Data tab · ${esc(CC.updated)} · tap a heading to sort</span><button class="ghost" data-ccrefresh="1">Refresh</button></div>`;
-  $('ccBody').querySelectorAll('thead th[data-c]').forEach(th=>th.onclick=()=>{const i=+th.dataset.c;ccSort=ccSort.c===i?{c:i,up:!ccSort.up}:{c:i,up:i<=1};renderCaptains()});
+  $('ccBody').querySelectorAll('thead th[data-c]').forEach(th=>th.onclick=()=>{const i=+th.dataset.c;ccSort=ccSort.c===i?{c:i,up:!ccSort.up}:{c:i,up:i===0};renderCaptains()});
   $('ccBody').querySelector('[data-ccrefresh]').onclick=()=>loadCaptains(true)}
 
 /* ----- Captain's Corner breakdowns (lanes, weeks, opponents), worked out from the approved weekly scores ----- */
