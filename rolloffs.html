@@ -102,7 +102,7 @@ tr.win td{background:linear-gradient(90deg,#1d5a3e,var(--panel))}
 .match.cmpct{gap:.8vh;background:rgba(255,255,255,.025);border-radius:1.4vh;padding:.8vh .8vw 1vh}
 .mnight{font:700 2.6vh/1 var(--display);letter-spacing:.24em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:0}
 .mnight .live,.mnight .final{font-size:1.7vh;padding:.45vh .7vw;margin-left:1vw}
-.mwait{background:var(--panel);border-radius:1.2vh;padding:3vh 2vw;font:500 2.6vh/1.4 var(--body);color:var(--muted)}.mwait b{display:block;color:var(--gold);font:700 3vh var(--display);text-transform:uppercase;letter-spacing:.2em}
+.mnight.solo{margin-bottom:-1vh}.mwait{background:var(--panel);border-radius:1.2vh;padding:3vh 2vw;font:500 2.6vh/1.4 var(--body);color:var(--muted)}.mwait b{display:block;color:var(--gold);font:700 3vh var(--display);text-transform:uppercase;letter-spacing:.2em}
 .cmpct .scorebug{gap:1.2vw}.cmpct .bug{padding:.5vh 1.4vw}.cmpct .bt{flex-direction:row;align-items:center;gap:1vw}.cmpct .bn{font-size:4.2vh}.cmpct .bs{font-size:5.6vh}
 .cmpct .lead{font-size:3.4vh}.cmpct .thru{font-size:2vh;margin-top:.4vh}
 .cmpct .grids{gap:1.2vw}.cmpct .lg{padding:.5vh .6vw}.cmpct .lgh{margin-bottom:.2vh}.cmpct .lgh b{font-size:2.3vh}.cmpct .upnow,.cmpct .upd2{font-size:1.8vh}
@@ -407,8 +407,11 @@ function renderLive(first){const ns=liveNight(),tv=$('tv');if(first)livePoll();
   const head=`<div class="top"><div><div class="club">Weston Golf Club · Men’s Candlepin</div><h1>${both?'The Roll-Ins':ns[0]+' Roll-In'} ${allFin?'<span class="final">Final</span>':(both?'':(ms[0]?'<span class="live">● Live</span>':''))}</h1></div><div class="when">${esc(st.title)}<br>${esc(st.date)}</div></div>`;
   if(!both&&!ms[0]){tv.innerHTML=head+`<div class="stage"><div class="title"><div class="sub">${liveErr||'Waiting for the scorer to start the roll-in…'}</div></div></div>`;return}
   const ages=ms.filter(m=>m&&!m.done&&LIVE.now&&m.at).map(m=>Math.max(0,Math.round((LIVE.now-m.at)/1000))),age=ages.length?Math.min(...ages):null;
-  tv.innerHTML=head+`<div class="stage live-stage ${both?'two':''}">${ns.map((n,i)=>matchHTML(n,ms[i],both)).join('')}</div>
-    <div class="foot"><span>${allFin?'Final':both?'Scores at the same point in each string · updates by itself':'Updates by itself as boxes are entered'}${liveErr?' · '+esc(liveErr):''}</span><span>${age!=null?(age<10?'Updated just now':`Updated ${age<120?age+' s':Math.round(age/60)+' min'} ago`):''}</span></div>`}
+  // Both-matches screen with only one match started: show that one full size until the other begins.
+  const onlyOne=both&&ms.filter(Boolean).length===1,oi=ms.findIndex(Boolean),waitN=onlyOne?ns[1-oi]:null;
+  if(onlyOne)tv.classList.remove('two');
+  tv.innerHTML=head+`<div class="stage live-stage ${both&&!onlyOne?'two':''}">${onlyOne?`<div class="mnight solo">${ns[oi]} <span class="live">● Live</span></div>`+matchHTML(ns[oi],ms[oi],false):ns.map((n,i)=>matchHTML(n,ms[i],both)).join('')}</div>
+    <div class="foot"><span>${waitN?`${waitN} roll-in: waiting for the scorer to start · `:''}${allFin?'Final':both?'Scores at the same point in each string · updates by itself':'Updates by itself as boxes are entered'}${liveErr?' · '+esc(liveErr):''}</span><span>${age!=null?(age<10?'Updated just now':`Updated ${age<120?age+' s':Math.round(age/60)+' min'} ago`):''}</span></div>`}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&liveNight())livePoll()});
 
 /* ---------- start ---------- */
