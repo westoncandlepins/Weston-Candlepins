@@ -193,6 +193,7 @@ tr.team.cut td{border-bottom:2px dashed var(--gold)}
 .rdfoot{display:grid;gap:8px;margin:14px 0}.rdst{margin:16px 0 6px;font:700 16px var(--display);text-transform:uppercase;color:var(--accent)}
 .riswap{display:flex;gap:6px;align-items:center;margin:12px 0}.riswap[hidden]{display:none}.riswap span{font:700 12px var(--body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-right:2px}.riswap button{flex:1;padding:10px 8px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:700 15px var(--body)}
 .riswap button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.livetag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:7px;background:#c62828;color:#fff;font:700 11px var(--body);letter-spacing:.06em;text-transform:uppercase;vertical-align:2px}
 .cbt td small{display:block;font-size:11px;color:var(--muted)}.cbt td.wait{color:var(--muted)}.cbt tr.win td{background:rgba(201,151,46,.14)}
 .cbseed{display:inline-block;font-size:10px;font-weight:700;padding:1px 5px;border-radius:8px;background:var(--line,#e3e8ef);color:var(--muted);vertical-align:1px}
 #champBoard h4{margin:10px 0 6px;font-size:14px}
@@ -1158,10 +1159,15 @@ $('copyBtn').onclick=()=>{const t=$('csvText');t.value=csvText(build());const fb
 // Built from every team's sent strings. Handicap is worked out again here from each string's lineup averages:
 // 85% of the gap to the highest lineup average in that string (the opponent's, in the roll-in), plus the seed advantage.
 let CB=null,cbBusy=false,cbTimer=null;
+// Roll-in: the board also reads the live match (sent by the scorer's phone after every box), so it moves each time
+// both teams have finished the same box. It checks every 5 seconds during the roll-in; the roll-offs every minute.
+let LV=null;
 function loadBoard(){if(typeof google==='undefined'||!google.script||cbBusy)return;cbBusy=true;$('cbMsg').textContent='Updating…';
-  google.script.run.withSuccessHandler(t=>{cbBusy=false;CB=JSON.parse(t);$('cbMsg').textContent='Updated '+CB.updated;renderBoard();if(!$('roDesk').hidden)rdRender()})
-    .withFailureHandler(e=>{cbBusy=false;$('cbMsg').textContent='Couldn’t load the board: '+(e&&e.message||e)}).getChampionshipBoard();
-  clearTimeout(cbTimer);cbTimer=setTimeout(()=>{if(view==='score'&&isChamp()&&document.visibilityState==='visible')loadBoard()},60000)}
+  const ri=P.week===RI;let left=ri?2:1;const fin=()=>{if(--left)return;cbBusy=false;renderBoard();if(!$('roDesk').hidden)rdRender()};
+  google.script.run.withSuccessHandler(t=>{CB=JSON.parse(t);$('cbMsg').textContent='Updated '+CB.updated;fin()})
+    .withFailureHandler(e=>{$('cbMsg').textContent='Couldn’t load the board: '+(e&&e.message||e);fin()}).getChampionshipBoard();
+  if(ri)google.script.run.withSuccessHandler(t=>{try{LV=JSON.parse(t)}catch(e){}fin()}).withFailureHandler(()=>fin()).getLive();
+  clearTimeout(cbTimer);cbTimer=setTimeout(()=>{if(view==='score'&&isChamp()&&document.visibilityState==='visible')loadBoard()},ri?5000:60000)}
 $('cbRefresh').onclick=loadBoard;
 // Ranks nets high to low for 5, 4, 3 … points; tied teams split the points for the places they share.
 function pointsFor(list,top){const s=list.slice().sort((a,b)=>b.v-a.v),out=new Map();let i=0;
@@ -1176,6 +1182,13 @@ function renderBoard(){const box=$('cbBody');if(!CB||!L||!L.champ){box.innerHTML
     box.innerHTML=nights.map(n=>{const pair=Object.keys(L.champ.teams).filter(t=>L.champ.teams[t].night===n&&L.champ.teams[t].seed>=3).sort((a,b)=>L.champ.teams[a].seed-L.champ.teams[b].seed);
       const got=fixNets(CB.rows.filter(r=>r.round==='Roll-In'&&pair.includes(r.team)&&r.n===1));
       const done=got.length===2,win=done&&got[0].net2!==got[1].net2?(got[0].net2>got[1].net2?got[0]:got[1]).team:null;
+      // Not saved yet: show the live match, counted only through the boxes both teams have finished.
+      const lv=LV&&LV[n];
+      if(!done&&lv&&lv.teams&&lv.teams.length===2){const[a,b]=lv.teams,d=a.at-b.at,nm=(t,p)=>{const x=t.bowlers[p];return!x?'':x.absent?'Absent':shortName(x.name)};
+        const where=lv.done?'Final, waiting for the scorer to send':lv.N?`Through ${esc(nm(a,lv.thru.p-1))} & ${esc(nm(b,lv.thru.p-1))} · box ${lv.thru.f}`:'Starting with handicap and advantage';
+        return`<h4>${esc(n)} roll-in <span class="livetag">● Live</span></h4><div class="scroll"><table class="res cbt"><thead><tr><th>Team</th><th>Hdcp</th><th>Adv</th><th>Start</th><th>Pins</th><th>Total</th></tr></thead><tbody>${[a,b].map(t=>
+          `<tr class="${(t===a?d:-d)>0?'win':''}"><td class="nm">${esc(t.team)} ${tag(t.team)}</td><td>${t.hc?'+'+t.hc:0}</td><td>${t.adv?'+'+t.adv:0}</td><td>${t.hc+t.adv}</td><td>${t.at-t.hc-t.adv}</td><td><b>${t.at}</b></td></tr>`).join('')}</tbody></table></div>
+          <p class="note"><b>${d===0?'All square':`${esc(d>0?a.team:b.team)} by ${Math.abs(d)}`}</b> · ${where}</p>`}
       return`<h4>${esc(n)} roll-in</h4><div class="scroll"><table class="res cbt"><thead><tr><th>Team</th><th>Lineup avg</th><th>Pins</th><th>Hdcp</th><th>Adv</th><th>Net</th></tr></thead><tbody>${pair.map(t=>{const r=got.find(x=>x.team===t);
         return`<tr class="${win===t?'win':''}"><td class="nm">${esc(t)} ${tag(t)}${win===t?'<small><b>Advances</b></small>':''}</td>${r?`<td>${fmt(r.avgSum)}</td><td>${r.pins}</td><td>${r.hc2}</td><td>${r.adv?'+'+r.adv:''}</td><td><b>${r.net2}</b>${r.off?`<small class="warn">sheet ${r.net}</small>`:''}</td>`:'<td colspan="5" class="wait" style="text-align:left">Not in yet</td>'}</tr>`}).join('')}</tbody></table></div>${done&&!win?'<p class="note warn">Tied on net. Check the tiebreak with the commissioner.</p>':''}`}).join('')+
       '<p class="note">Net = pins + handicap + advantage. Handicap is 85% of the gap between the two lineup averages.</p>';
