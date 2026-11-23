@@ -179,6 +179,7 @@ tr.team.cut td{border-bottom:2px dashed var(--gold)}
 .rigo{width:100%;margin-top:2px}.rilead small{display:block;font:500 12px var(--body);letter-spacing:0;text-transform:none;color:var(--muted);margin-top:2px}.rilead.quiet{color:var(--muted);font-size:13px}
 .rilead{text-align:center;font:700 15px var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
 .riteam{display:inline-block;background:var(--gold);color:#1b1404;border-radius:6px;padding:0 7px;margin-right:2px;font-size:.9em}
+.chboard{margin:0 0 12px}.chbh{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}.chbh b{font:700 16px var(--display);text-transform:uppercase;letter-spacing:.04em;color:var(--accent)}.chbh button{padding:6px 12px}
 .chseg{display:flex;gap:6px;margin:0 0 12px}.chseg button{flex:1;padding:12px 8px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:700 16px var(--display);text-transform:uppercase;letter-spacing:.05em}
 .chseg button.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .chpick{display:grid;grid-template-columns:1fr auto;gap:2px 10px;width:100%;text-align:left;padding:14px;margin:10px 0;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
@@ -424,6 +425,10 @@ header .nav{gap:8px!important}
 <main class="wrap" id="viewChamp" hidden>
   <div class="chseg" role="tablist" aria-label="Round"><button data-ch="ri" class="on" role="tab">Roll-ins</button><button data-ch="ro" role="tab">Roll-offs</button></div>
   <div class="loading" id="chLoading">Loading the teams and averages…</div>
+  <section class="panel chboard" id="chBoard" hidden>
+    <div class="chbh"><b id="chBoardT">Live board</b><button class="ghost" id="chBoardBtn">Refresh</button></div>
+    <div id="chBoardBody"></div><div class="msg" id="chBoardMsg"></div>
+  </section>
   <div id="chRI"></div>
   <div id="chRO" hidden>
     <p class="note">Open each team to set its lineup and add a picture of its sheet when it comes in. When all six pictures are in, read them together, check the scores, and send the string.</p>
@@ -595,7 +600,6 @@ function roster(){const t=L.teams[P.team];return(t?t.bowlers.map(b=>({name:b.nam
 function defaultWeek(){const weeks=[...new Set(L.schedule.map(r=>r.week))].sort((a,b)=>a-b);
   const team=L.teams[P.team];const night=team?team.night:null;
   const up=L.schedule.filter(r=>(!night||r.night===night)&&r.date>=L.today).sort((a,b)=>a.date.localeCompare(b.date))[0];
-  const si=seedInfo(P.team);if(!up&&si&&L.champ.date)return si.seed>=3?RI:RO;
   return up?up.week:weeks[weeks.length-1]}
 const mkey=()=>P.team+'|'+P.week;
 function openMatch(){
@@ -620,7 +624,8 @@ function afterPick(){
   if(typeof clearPhoto==='function'&&$('photoPrev'))clearPhoto();
   const night=L.teams[P.team]?L.teams[P.team].night:null;
   const weeks=L.schedule.filter(r=>!night||r.night===night).reduce((a,r)=>{if(!a.some(x=>x.week===r.week))a.push(r);return a},[]).sort((a,b)=>a.week-b.week);
-  const champ=[RI,RO].map(w=>P.team?champMatch(P.team,w):null).filter(Boolean);
+  // Championship strings are scored from the Championship tab; the Digital Scoresheet lists only the regular weeks.
+  const champ=chActive?[RI].map(w=>P.team?champMatch(P.team,w):null).filter(Boolean):[];
   if(!P.week||!(weeks.some(w=>w.week===P.week)||champ.some(c=>c.week===P.week)))P.week=P.team?defaultWeek():weeks.length?weeks[0].week:1;
   $('week').innerHTML=weeks.map(w=>`<option value="${w.week}">Week ${w.week} · ${niceDate(w.date)}</option>`).join('')+
     (champ.length?`<optgroup label="Team Championship">${champ.map(c=>`<option value="${c.week}">${roundName(c.week)} · ${niceDate(c.date)}</option>`).join('')}</optgroup>`:'');
@@ -636,7 +641,7 @@ function afterPick(){
     P.week===RI?`<b>Roll-In · ${esc(P.team)} vs ${esc(opp())}</b><br>${ordinal(si.seed)} seed, ${esc(si.night)} · one string, head to head · ${a?`+${a} pins advantage`:`${esc(opp())} gets +5 pins`} · ${niceDate(m.date)}<br><span class="note">The higher net score advances to the Roll-Offs. Averages are from the end of Week 7.</span>`:
     P.week===RO?`<b>Roll-Offs · ${esc(P.team)}</b><br>${ordinal(si.seed)} seed, ${esc(si.night)}${a?` · +${a} pins every string`:''} · three strings · ${niceDate(m.date)}<br><span class="note">Each string, enter the highest lineup average in the field; your handicap is 85% of the gap. Points: 5 down to 0 for each string and for total net. Averages are from the end of Week 7.</span>`:
     `<b>${esc(P.team)} vs ${esc(opp())}</b><br>Lanes ${esc(m.lanes)} · ${esc(m.night)} ${niceDate(m.date)}`;
-  $('champBoard').hidden=!isChamp();if(isChamp())loadBoard();
+  $('champBoard').hidden=!(isChamp()&&chActive);if(isChamp()&&chActive)loadBoard();
   // Roll-in: one scorer keeps both teams' sheets on this phone and flips between them.
   $('riswap').hidden=!(m&&P.week===RI);
   $('riswap').innerHTML=m&&P.week===RI?`<span>Scoring</span>${[m.home,m.away].map(t=>`<button class="${t===P.team?'on':''}" data-riteam="${esc(t)}">${esc(t)}</button>`).join('')}`:'';
@@ -1194,9 +1199,9 @@ function pointsFor(list,top){const s=list.slice().sort((a,b)=>b.v-a.v),out=new M
     for(let k=i;k<=j;k++)out.set(s[k].team,sum/(j-i+1));i=j+1}return out}
 const ptsF=v=>v==null?'':Number.isInteger(v)?String(v):v.toFixed(1);
 function fixNets(rows){const max=Math.max(...rows.map(r=>r.avgSum));rows.forEach(r=>{r.hc2=Math.round((max-r.avgSum)*.85);r.net2=r.pins+r.hc2+r.adv;r.off=r.net2!==r.net});return rows}
-function renderBoard(){const box=$('cbBody');if(!CB||!L||!L.champ){box.innerHTML='';return}
+function renderBoard(mode,box){mode=mode||(P.week===RI?'ri':'ro');box=box||$('cbBody');if(!CB||!L||!L.champ){box.innerHTML='';return}
   const tag=t=>{const si=seedInfo(t);return si?`<span class="cbseed">${si.night.slice(0,3)} ${ordinal(si.seed)}</span>`:''};
-  if(P.week===RI){
+  if(mode==='ri'){
     const nights=[...new Set(Object.values(L.champ.teams).map(x=>x.night))];
     box.innerHTML=nights.map(n=>{const pair=Object.keys(L.champ.teams).filter(t=>L.champ.teams[t].night===n&&L.champ.teams[t].seed>=3).sort((a,b)=>L.champ.teams[a].seed-L.champ.teams[b].seed);
       const got=fixNets(CB.rows.filter(r=>r.round==='Roll-In'&&pair.includes(r.team)&&r.n===1));
@@ -1339,10 +1344,23 @@ function rdSend(){const k=RD.cur,F=rdField();$('rdMsg').textContent='Sending…'
 /* ---------- Championship tab: roll-ins and roll-offs ----------
    Roll-ins: pick a night, open each team to set its five, then score both teams on one phone.
    Roll-offs: the six teams as an accordion (lineup + picture each), read all six together, send. */
-let chTab='ri',chNight=null,chOpen=null;var chFrom=false;
+let chTab='ri',chNight=null,chOpen=null;var chFrom=false,chActive=false;
 document.querySelectorAll('[data-ch]').forEach(b=>b.onclick=()=>{chTab=b.dataset.ch;chRender()});
 $('chBackBtn').onclick=()=>{chNight=chNight||(seedInfo(P.team)||{}).night||null;chTab='ri';show('champ')};
+/* Live board on the Championship tab: both roll-ins as they're scored (every 5 seconds), or the roll-off standings. */
+let chbBusy=false,chbTimer=null;
+function chLoadBoard(){clearTimeout(chbTimer);if(view!=='champ'||typeof google==='undefined'||!google.script)return;
+  if(!chbBusy){chbBusy=true;let left=2;const fin=()=>{if(--left)return;chbBusy=false;chDrawBoard()};
+    google.script.run.withSuccessHandler(t=>{CB=JSON.parse(t);$('chBoardMsg').textContent='Updated '+CB.updated;fin()})
+      .withFailureHandler(e=>{$('chBoardMsg').textContent='Couldn’t load the board: '+(e&&e.message||e);fin()}).getChampionshipBoard();
+    google.script.run.withSuccessHandler(t=>{try{LV=JSON.parse(t)}catch(e){}fin()}).withFailureHandler(()=>fin()).getLive()}
+  chbTimer=setTimeout(()=>{if(view==='champ'&&document.visibilityState==='visible')chLoadBoard()},chTab==='ri'?5000:30000)}
+function chDrawBoard(){if(!L||!L.champ)return;$('chBoard').hidden=false;$('chBoardT').textContent=chTab==='ri'?'Roll-ins · live board':'Roll-offs · standings';
+  if(!CB){$('chBoardBody').innerHTML='<p class="note">Loading…</p>';return}renderBoard(chTab,$('chBoardBody'))}
+$('chBoardBtn').onclick=chLoadBoard;
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&view==='champ')chLoadBoard()});
 function chRender(){document.querySelectorAll('[data-ch]').forEach(b=>b.classList.toggle('on',b.dataset.ch===chTab));
+  if(L&&L.champ&&L.champ.date){chDrawBoard();chLoadBoard()}
   $('chRI').hidden=chTab!=='ri';$('chRO').hidden=chTab!=='ro';
   if(!L){$('chLoading').hidden=false;return}$('chLoading').hidden=true;
   if(!L.champ||!L.champ.date){$('chRI').innerHTML='<p class="note">The championship seeds aren’t set up yet.</p>';$('chRO').hidden=true;return}
@@ -1367,7 +1385,7 @@ function chRenderRI(){const box=$('chRI');
   box.querySelectorAll('[data-cho]').forEach(x=>x.onclick=()=>{const t=x.dataset.cho;chOpen=chOpen===t?null:t;chRenderRI()});
   box.querySelectorAll('[data-chl]').forEach(x=>x.onchange=()=>{const[t,i]=x.dataset.chl.split('|'),s=riSheet(t),b=s.lineup[+i],v=x.value;
     b.name=v;if(v===ABS){b.avg='75';b.orig=null}else if(v){const a=avgFor(v,RI);b.avg=a!=null?String(a):'';b.orig=a}else{b.avg='';b.orig=null}persist();chRenderRI()});
-  $('chGo').onclick=()=>{P.team=pair[0];P.week=RI;persist();$('team').value=P.team;afterPick();chFrom=true;show('score')}}
+  $('chGo').onclick=()=>{chActive=true;P.team=pair[0];P.week=RI;persist();$('team').value=P.team;afterPick();chFrom=true;show('score')}}
 function riCard(t){const s=riSheet(t),si=seedInfo(t)||{},open=chOpen===t,n=riSet(t),lk=s.saved||hasBoxes(s);
   const sum=s.lineup.reduce((a,b)=>a+(b.name?Number(b.avg)||0:0),0);
   const head=`<button class="chhead" data-cho="${esc(t)}" aria-expanded="${open}"><span class="chn">${esc(t)}</span><span class="tag2">${ordinal(si.seed||0)} seed${advFor(t,RI)?' · +5':''}</span>
@@ -1387,7 +1405,10 @@ function show(v){view=v;$('pageTitle').textContent=TITLES[v];$('matchline').hidd
   if(v==='leaders')loadRegList();
   if(v==='champ')chRender();
   // Scoring a roll-in from the Championship tab hides the regular match setup; the Digital Scoresheet tab shows it all.
-  if(v==='score'){$('app').classList.toggle('chmode',!!(chFrom&&L&&P.week===RI&&riOn()));chFrom=false}
+  if(v==='score'){chActive=!!(chFrom&&L&&P.week===RI&&riOn());$('app').classList.toggle('chmode',chActive);
+    // Opened from the Digital Scoresheet tab: regular weekly scoring only.
+    if(!chFrom&&L&&(P.week>=RI||[...$('week').options].some(o=>+o.value>=RI))){if(P.week>=RI)P.week=P.team?defaultWeek():P.week;persist();afterPick()}
+    chFrom=false}
   if(v==='captain'){if(!CC)loadCaptains(false);else renderCaptains()}
   if(v==='recap'){if(!RC)loadRecap(false);else renderRecap()}
   if((v==='teams'||v==='leaders')&&!S)loadStandings(false);else if(v==='teams'||v==='leaders')renderStandings();
